@@ -110,8 +110,8 @@ function Shell() {
   usePrefetchScreens();
   const key = keyFor(route, depth);
   useScrollRestore(key, direction);
-  // never reload for an update while a daily attempt is being prepared, played or shown
-  useEffect(() => { setUpdateBusy(route.name === 'prep' || route.name === 'play' || route.name === 'results' || route.name === 'auth'); }, [route.name]);
+  // never reload for an update while an attempt is being prepared or played (results are already saved)
+  useEffect(() => { setUpdateBusy(route.name === 'prep' || route.name === 'play'); }, [route.name]);
   return (
     <div className="app-frame">
       {/* popLayout: the outgoing screen is lifted out of the flow while it animates away */}

@@ -38,9 +38,10 @@ export function initUpdates() {
   });
   document.addEventListener('visibilitychange', maybeReload);
   // a lazily-loaded screen from an older deploy is gone: refresh to the current version
+  // right away (the screen could not render anyway), unless a game is running.
   window.addEventListener('vite:preloadError', (e) => {
     e.preventDefault();
-    pending = true;
-    maybeReload();
+    if (busy) { pending = true; return; }
+    window.location.reload();
   });
 }
