@@ -1,0 +1,5 @@
+# Minimal Supabase CLI config for KIKKO. Run `supabase init` to regenerate a full file if needed.
+project_id = "kikko"
+
+[functions.daily]
+verify_jwt = true

@@ -1,0 +1,140 @@
+/* ───────────────────────── KIKKO tokens ───────────────────────── */
+:root {
+  /* approved palette */
+  --blue: #3777f6;
+  --coral: #ff8c60;
+  --lime: #c9ff67;
+  --cream: #fff8e9;
+  --ink: #29232a;
+  /* derived shades (depth / pressed bases only) */
+  --blue-deep: #2257d6;
+  --blue-ink: #183a9e;
+  --blue-soft: #5b90f8;
+  --coral-deep: #db6a3f;
+  --lime-deep: #95c93b;
+  --cream-2: #f6ecd4;
+  --cream-3: #eadcbc;
+  --cream-deep: #d8c8a4;
+  --ink-2: #3b343c;
+  --ink-3: #514954;
+  --ink-60: rgba(41, 35, 42, 0.62);
+  --ink-40: rgba(41, 35, 42, 0.42);
+  --ink-12: rgba(41, 35, 42, 0.12);
+  --cream-70: rgba(255, 248, 233, 0.72);
+  --cream-50: rgba(255, 248, 233, 0.5);
+  --cream-16: rgba(255, 248, 233, 0.16);
+
+  --font-display: 'Outfit Variable', 'Outfit', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-xl: 34px;
+
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --gutter: 20px;
+  --tabbar-h: 76px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--ink);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-user-select: none; user-select: none; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; border-radius: 10px; }
+img { display: block; max-width: 100%; -webkit-user-drag: none; user-select: none; }
+svg { display: block; }
+h1, h2, h3, p { margin: 0; }
+
+/* ───────────────────────── App frame ───────────────────────── */
+.app-frame {
+  position: relative;
+  height: 100%;
+  height: 100dvh;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--cream);
+  isolation: isolate;
+}
+@media (min-width: 600px) {
+  body {
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255, 248, 233, 0.08) 1px, transparent 1.5px) 0 0 / 22px 22px,
+      var(--ink);
+    display: grid;
+    place-items: center;
+  }
+  #root { display: grid; place-items: center; width: 100%; }
+  .app-frame {
+    height: min(900px, calc(100dvh - 48px));
+    border-radius: 44px;
+    box-shadow: 0 0 0 10px #1c181d, 0 40px 80px rgba(0, 0, 0, 0.5);
+  }
+  .app-frame { --sat: 18px; }
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  will-change: transform, opacity;
+}
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.scroll::-webkit-scrollbar { display: none; }
+
+/* ───────────────────────── Type ───────────────────────── */
+.display {
+  font-family: var(--font-display);
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  line-height: 0.92;
+}
+.d-xl { font-size: clamp(40px, 12vw, 52px); }
+.d-lg { font-size: clamp(32px, 9.4vw, 40px); }
+.d-md { font-size: 26px; }
+.d-sm { font-size: 20px; letter-spacing: -0.01em; }
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.lead { font-size: 16px; font-weight: 550; line-height: 1.45; }
+.small { font-size: 13px; font-weight: 600; }
+.num { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -0.02em; }
+.muted { color: var(--ink-60); }
+.on-dark .muted { color: var(--cream-70); }
+.hl-lime { color: var(--lime); }
+.hl-coral { color: var(--coral); }
+.hl-blue { color: var(--blue); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
