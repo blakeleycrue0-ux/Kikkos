@@ -47,8 +47,10 @@ export async function initBackend(): Promise<void> {
       return caps;
     });
   let caps: AuthCaps | null;
-  if (cached && (cached.quickPlay || cached.emailLogin)) { caps = cached; void probe.catch(() => {}); } // refresh in the background
-  else caps = await Promise.race([probe.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 1500))]);
+  // Known answer: start instantly and refresh it in the background (applies on the next launch).
+  // First visit ever: wait briefly for the real answer so the mode is right from the start.
+  if (cached) { caps = cached; void probe.catch(() => {}); }
+  else caps = await Promise.race([probe.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 1200))]);
   if (caps && (caps.quickPlay || caps.emailLogin)) backend = lazyOnline(caps);
 }
 
