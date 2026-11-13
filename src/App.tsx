@@ -3,19 +3,44 @@ import { AppProvider, useApp } from './app/store';
 import type { Direction, Route } from './app/routes';
 import { TabBar } from './components/TabBar';
 import { Toasts } from './components/Toasts';
-import { Arcade } from './features/Arcade';
-import { Auth } from './features/Auth';
-import { Friends } from './features/Friends';
-import { Group } from './features/Group';
+import { lazy, Suspense, useEffect } from 'react';
 import { Home } from './features/Home';
-import { Join } from './features/Join';
 import { Onboarding } from './features/Onboarding';
-import { Play } from './features/Play';
-import { Prep } from './features/Prep';
-import { Profile } from './features/Profile';
-import { Results } from './features/Results';
 import { Welcome } from './features/Welcome';
-import { World } from './features/World';
+
+// Secondary screens are split out and prefetched while the browser is idle,
+// so the first paint is fast and later transitions never wait on the network.
+const loaders = {
+  Arcade: () => import('./features/Arcade'),
+  Auth: () => import('./features/Auth'),
+  Friends: () => import('./features/Friends'),
+  Group: () => import('./features/Group'),
+  Join: () => import('./features/Join'),
+  Play: () => import('./features/Play'),
+  Prep: () => import('./features/Prep'),
+  Profile: () => import('./features/Profile'),
+  Results: () => import('./features/Results'),
+  World: () => import('./features/World'),
+};
+const Arcade = lazy(() => loaders.Arcade().then((m) => ({ default: m.Arcade })));
+const Auth = lazy(() => loaders.Auth().then((m) => ({ default: m.Auth })));
+const Friends = lazy(() => loaders.Friends().then((m) => ({ default: m.Friends })));
+const Group = lazy(() => loaders.Group().then((m) => ({ default: m.Group })));
+const Join = lazy(() => loaders.Join().then((m) => ({ default: m.Join })));
+const Play = lazy(() => loaders.Play().then((m) => ({ default: m.Play })));
+const Prep = lazy(() => loaders.Prep().then((m) => ({ default: m.Prep })));
+const Profile = lazy(() => loaders.Profile().then((m) => ({ default: m.Profile })));
+const Results = lazy(() => loaders.Results().then((m) => ({ default: m.Results })));
+const World = lazy(() => loaders.World().then((m) => ({ default: m.World })));
+
+function usePrefetchScreens() {
+  useEffect(() => {
+    const run = () => Object.values(loaders).forEach((l) => { void l().catch(() => {}); });
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    if (w.requestIdleCallback) w.requestIdleCallback(run, { timeout: 2500 });
+    else setTimeout(run, 1200);
+  }, []);
+}
 
 const spring = { type: 'spring' as const, stiffness: 380, damping: 38, mass: 0.9 };
 
@@ -58,12 +83,13 @@ function keyFor(r: Route, depth: number) {
 
 function Shell() {
   const { route, direction, depth } = useApp();
+  usePrefetchScreens();
   return (
     <div className="app-frame">
       <AnimatePresence initial={false} custom={direction}>
         <motion.div key={keyFor(route, depth)} className="screen-host" custom={direction}
           variants={variants} initial="initial" animate="animate" exit="exit">
-          {screenFor(route)}
+          <Suspense fallback={<div className="screen screen--loading" />}>{screenFor(route)}</Suspense>
         </motion.div>
       </AnimatePresence>
       {route.name === 'tabs' && <TabBar active={route.tab} />}

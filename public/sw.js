@@ -1,5 +1,5 @@
 // KIKKO service worker: app-shell caching. API calls are never cached.
-const VERSION = 'kikko-v1';
+const VERSION = 'kikko-v2';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/brand/kikko-logo.png',
   '/brand/kikko-logo-reversed.png', '/brand/kikko-icon.png', '/icon-192.png', '/apple-touch-icon.png'];
 

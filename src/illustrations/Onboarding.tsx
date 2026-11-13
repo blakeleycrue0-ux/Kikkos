@@ -102,7 +102,7 @@ export function WorldArt() {
           </motion.div>
         ))}
         <motion.div className="ladder__row ladder__row--you"
-          initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: [60, 0, 0, 60] }}
+          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: [24, 0, 0, 24] }}
           transition={{ opacity: { delay: 0.4 }, y: { duration: 5, times: [0, 0.3, 0.85, 1], repeat: Infinity, ease: 'easeInOut', delay: 0.4 } }}>
           <div className="ladder__pill ladder__pill--you">
             <span className="ladder__rank">YOU</span>

@@ -449,3 +449,14 @@ em { font-style: normal; opacity: 0.65; }
 .play__pop { left: 8px; top: auto; bottom: 6px; }
 .friends__art--sm { width: 220px; margin-bottom: 14px; }
 .feature__title { max-width: 56%; position: relative; }
+
+/* ── small-iPhone fit (SE / mini) ── */
+.ob-art { container-type: inline-size; }
+.ladder { top: 30%; gap: 2.5cqw; }
+.ladder__pill { height: 14cqw; }
+@media (max-height: 700px) {
+  .prep__art { width: min(150px, 40vw, 22dvh); margin-bottom: 6px; }
+  .prep__title { font-size: 34px; margin-bottom: 10px; }
+  .prep__rules li { padding-top: 6px; padding-bottom: 6px; font-size: 14px; }
+  .prep__facts div { padding: 7px 4px; }
+}
