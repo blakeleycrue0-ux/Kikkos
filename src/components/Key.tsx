@@ -1,4 +1,4 @@
-import { motion, type HTMLMotionProps } from 'motion/react';
+import { m, type HTMLMotionProps } from 'motion/react';
 import type { ReactNode } from 'react';
 import { fx } from '../lib/feedback';
 
@@ -21,7 +21,7 @@ export function Key({ tone = 'coral', size = 'md', block, onBlue, busy, children
   const cls = ['key', `key--${tone}`, size !== 'md' && `key--${size}`, block && 'key--block', onBlue && 'key--on-blue', busy && 'key--busy', className]
     .filter(Boolean).join(' ');
   return (
-    <motion.button
+    <m.button
       type="button"
       className={cls}
       style={{ ['--depth' as string]: `${depth}px` }}
@@ -34,21 +34,21 @@ export function Key({ tone = 'coral', size = 'md', block, onBlue, busy, children
       onClick={(e) => { if (busy) return; fx.press(); onClick?.(e); }}
       {...rest}
     >
-      <motion.span
+      <m.span
         className="key__face"
         variants={{ up: { y: 0 }, hover: { y: -1.5 }, down: { y: depth } }}
         transition={{ type: 'spring', stiffness: 900, damping: 32, mass: 0.6 }}
       >
         {busy ? <span className="spinner" aria-label="Loading" /> : children}
-      </motion.span>
-    </motion.button>
+      </m.span>
+    </m.button>
   );
 }
 
 /** Small press-scale wrapper for secondary controls. */
 export function Press({ children, className, onClick, ...rest }: HTMLMotionProps<'button'>) {
   return (
-    <motion.button
+    <m.button
       type="button"
       className={className}
       whileTap={{ scale: 0.94 }}
@@ -57,6 +57,6 @@ export function Press({ children, className, onClick, ...rest }: HTMLMotionProps
       {...rest}
     >
       {children}
-    </motion.button>
+    </m.button>
   );
 }

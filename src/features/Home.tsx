@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, type BoardRow, type Group } from '../backend';
@@ -12,19 +12,20 @@ import { Burst, Ticks } from '../components/Motifs';
 import { Float } from '../illustrations/Float';
 import { MiniGrid } from '../illustrations/MiniGrid';
 import { COUNTDOWN_MS, DURATION_MS } from '@shared/oddspot.ts';
-import { formatDayLabel, formatHMS, msUntilNextDay } from '../lib/time';
+import { formatDayLabel } from '../lib/time';
+import { NextGame } from '../components/NextGame';
 import { useStats } from './useStats';
 
 const stagger = (i: number) => ({
-  initial: { opacity: 0, y: 22 },
+  initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
-  transition: { type: 'spring' as const, stiffness: 340, damping: 30, delay: 0.04 + i * 0.06 },
+  transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] as const, delay: i * 0.025 },
 });
 
 export function Home() {
   const { go, setTab, session, today, todayError, refreshToday } = useApp();
   const stats = useStats();
-  const now = useNow(1000, today?.serverOffsetMs ?? 0);
+  const now = useNow(15_000, today?.serverOffsetMs ?? 0);
   const [me, setMe] = useState<BoardRow | null>(null);
   const [groups, setGroups] = useState<Group[] | null>(null);
 
@@ -51,7 +52,7 @@ export function Home() {
   return (
     <div className="screen home">
       <div className="scroll home__scroll">
-        <motion.header className="home__top" {...stagger(0)}>
+        <m.header className="home__top" {...stagger(0)}>
           <Logo width={112} />
           <div className="home__top-right">
             {stats.streak > 0 && (
@@ -63,10 +64,10 @@ export function Home() {
                 : <span className="icon-btn"><Icon name="user" /></span>}
             </Press>
           </div>
-        </motion.header>
+        </m.header>
 
         {/* ─── Today ─── */}
-        <motion.section className="today on-dark" {...stagger(1)} aria-labelledby="today-title">
+        <m.section className="today on-dark" {...stagger(1)} aria-labelledby="today-title">
           <Ticks size={34} color="rgba(255,248,233,.18)" style={{ position: 'absolute', right: 18, bottom: 132 }} />
           <div className="today__row">
             <span className="chip chip--light">Daily #{today?.number ?? '·'}</span>
@@ -111,7 +112,7 @@ export function Home() {
               </div>
               <div className="today__next">
                 <span className="small" style={{ opacity: 0.8 }}>Next game in</span>
-                <span className="num today__clock">{formatHMS(msUntilNextDay(now))}</span>
+                <NextGame offset={today?.serverOffsetMs ?? 0} className="num today__clock" />
               </div>
             </div>
           ) : (
@@ -122,11 +123,11 @@ export function Home() {
               {!session?.profile && <p className="small today__hint">Ranked play needs a player name. Takes 10 seconds.</p>}
             </div>
           )}
-        </motion.section>
+        </m.section>
 
         {/* ─── World & Friends ─── */}
         <div className="home__duo">
-          <motion.button className="duo duo--world on-dark" {...stagger(2)} whileTap={{ scale: 0.97 }} onClick={() => setTab('world')}>
+          <m.button className="duo duo--world on-dark" {...stagger(2)} whileTap={{ scale: 0.97 }} onClick={() => setTab('world')}>
             <span className="duo__label"><Icon name="globe" size={18} /> World</span>
             {backend.mode === 'demo' ? (
               <>
@@ -145,8 +146,8 @@ export function Home() {
               </>
             )}
             <Icon name="chevron" size={18} className="duo__go" />
-          </motion.button>
-          <motion.button className="duo duo--friends" {...stagger(3)} whileTap={{ scale: 0.97 }} onClick={() => setTab('friends')}>
+          </m.button>
+          <m.button className="duo duo--friends" {...stagger(3)} whileTap={{ scale: 0.97 }} onClick={() => setTab('friends')}>
             <span className="duo__label"><Icon name="users" size={18} /> Friends</span>
             {groups && groups.length ? (
               <>
@@ -160,22 +161,22 @@ export function Home() {
               </>
             )}
             <Icon name="chevron" size={18} className="duo__go" />
-          </motion.button>
+          </m.button>
         </div>
 
-        <motion.button className="arcade-strip" {...stagger(4)} whileTap={{ scale: 0.98 }} onClick={() => setTab('arcade')}>
+        <m.button className="arcade-strip" {...stagger(4)} whileTap={{ scale: 0.98 }} onClick={() => setTab('arcade')}>
           <span className="arcade-strip__icon"><Icon name="arcade" size={24} /></span>
           <span className="arcade-strip__copy">
             <b>Arcade</b>
             <span className="small muted">Practice anytime. Doesn’t touch your daily shot.</span>
           </span>
           <Icon name="chevron" size={20} />
-        </motion.button>
+        </m.button>
 
         {backend.mode === 'demo' && (
-          <motion.p className="small muted home__demo" {...stagger(5)}>
+          <m.p className="small muted home__demo" {...stagger(5)}>
             <span className="demo-flag">Demo mode</span> No server configured. Scores stay on this device and aren’t verified.
-          </motion.p>
+          </m.p>
         )}
       </div>
     </div>

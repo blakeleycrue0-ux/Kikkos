@@ -1,16 +1,16 @@
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, type Group } from '../backend';
 import { Icon } from '../components/Icon';
-import { Key } from "../components/Key";
+import { Key, Press } from "../components/Key";
 import { Sheet } from '../components/Sheet';
 import { FriendsArt } from '../illustrations/Onboarding';
 import { load as loadPref, remove as removePref } from '../lib/prefs';
 import { BoardSkeleton, Empty } from './World';
 
 export function Friends() {
-  const { session, go, toast } = useApp();
+  const { session, go, toast, back } = useApp();
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [error, setError] = useState(false);
   const [sheet, setSheet] = useState<'create' | 'join' | null>(null);
@@ -33,7 +33,10 @@ export function Friends() {
     <div className="screen friends">
       <div className="scroll friends__scroll">
         <header className="page-head">
-          <h1 className="display d-lg">Friends</h1>
+          <div className="title-with-back">
+            <Press className="icon-btn" onClick={back} aria-label="Back"><Icon name="back" /></Press>
+            <h1 className="display d-lg">Friends</h1>
+          </div>
           <p className="small muted">Optional. Your daily score counts in every group you join.</p>
         </header>
 
@@ -59,16 +62,16 @@ export function Friends() {
             ) : (
               <ul className="groups">
                 {groups.map((g, i) => (
-                  <motion.li key={g.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                    <motion.button className="group-card" whileTap={{ scale: 0.98 }} onClick={() => go({ name: 'group', id: g.id })}>
+                  <m.li key={g.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, delay: i * 0.025 }}>
+                    <m.button className="group-card" whileTap={{ scale: 0.98 }} onClick={() => go({ name: 'group', id: g.id })}>
                       <span className="group-card__badge" aria-hidden="true">{g.name.slice(0, 1).toUpperCase()}</span>
                       <span className="group-card__copy">
                         <b>{g.name}</b>
                         <span className="small muted">{g.memberCount} {g.memberCount === 1 ? 'member' : 'members'} · {g.playedToday} played today</span>
                       </span>
                       <Icon name="chevron" size={20} />
-                    </motion.button>
-                  </motion.li>
+                    </m.button>
+                  </m.li>
                 ))}
               </ul>
             )}

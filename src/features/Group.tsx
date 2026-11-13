@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, type Group as G, type GroupBoardRow } from '../backend';
@@ -54,14 +54,14 @@ export function Group({ id, fresh }: { id: string; fresh?: boolean }) {
         {error ? <Empty title="Couldn’t load this group" text="It may have been deleted, or you’re offline." /> : !rows ? <BoardSkeleton /> : (
           <ol className="board">
             {rows.map((r, i) => (
-              <motion.li key={r.userId} className={`row ${r.isMe ? 'is-me' : ''}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+              <m.li key={r.userId} className={`row ${r.isMe ? 'is-me' : ''}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, delay: i * 0.02 }}>
                 <span className={`num row__rank ${i === 0 && r.totalScore > 0 ? 'row__rank--lead' : ''}`}>{i + 1}</span>
                 <Avatar name={r.username} seed={r.avatarSeed} size={34} />
                 <span className="row__name">{r.username}{r.isMe && <em> · you</em>}
                   <span className="row__meta">{seg === 'today' ? (r.daysPlayed ? 'played' : 'not yet') : `${r.daysPlayed} ${r.daysPlayed === 1 ? 'day' : 'days'} · best ${r.best.toLocaleString()}`}</span>
                 </span>
                 <span className="num row__score">{r.totalScore.toLocaleString()}</span>
-              </motion.li>
+              </m.li>
             ))}
           </ol>
         )}
@@ -77,12 +77,12 @@ export function Group({ id, fresh }: { id: string; fresh?: boolean }) {
       <Sheet open={invite} onClose={() => setInvite(false)} label="Invite friends">
         <h2 className="display d-md sheet__title">Invite rivals</h2>
         <p className="small muted">Share the link, or have them tap Join and enter the code.</p>
-        <motion.button className="invite-code" whileTap={{ scale: 0.97 }}
+        <m.button className="invite-code" whileTap={{ scale: 0.97 }}
           onClick={async () => { if (group && (await copyText(group.code))) toast('Code copied', 'good'); }}>
           <span className="eyebrow muted">Invite code</span>
           <span className="num invite-code__value">{group?.code}</span>
           <span className="small muted"><Icon name="copy" size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Tap to copy</span>
-        </motion.button>
+        </m.button>
         {backend.mode === 'demo' && <p className="small muted" style={{ marginBottom: 12 }}><span className="demo-flag">Demo</span> Friends can join once the server is connected.</p>}
         <Key tone="blue" block onClick={share}><Icon name="share" size={20} /> Share invite</Key>
       </Sheet>

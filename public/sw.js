@@ -1,7 +1,7 @@
 // KIKKO service worker: app-shell caching. API calls are never cached.
-const VERSION = 'kikko-v2';
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/brand/kikko-logo.png',
-  '/brand/kikko-logo-reversed.png', '/brand/kikko-icon.png', '/icon-192.png', '/apple-touch-icon.png'];
+const VERSION = 'kikko-v3';
+const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/brand/kikko-logo.webp',
+  '/brand/kikko-logo-reversed.webp', '/brand/kikko-icon.webp', '/icon-192.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, USERNAME_RE } from '../backend';
@@ -52,19 +52,19 @@ export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
         {demo && <span className="demo-flag">Demo mode</span>}
       </header>
       <div className="scroll auth__body">
-        <motion.div className="auth__mark" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-          <motion.div className="auth__burst" animate={{ rotate: 360 }} transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}>
+        <m.div className="auth__mark" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 520, damping: 30 }}>
+          <div className="auth__burst spin" style={{ animationDuration: '60s' }}>
             <Burst size={150} color="var(--lime)" points={10} />
-          </motion.div>
+          </div>
           <Logo variant="icon" width={92} />
-        </motion.div>
+        </m.div>
         <h1 className="display d-lg auth__title">{step === 'name' && !demo ? <>What should<br />we call you?</> : title}</h1>
         <p className="lead muted auth__sub">{step === 'name' && !demo ? 'This is how you show up on leaderboards.' : sub}</p>
 
         <AnimatePresence mode="wait" initial={false}>
           {step === 'choose' && (
-            <motion.div key="choose" className="auth__form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <m.div key="choose" className="auth__form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               {backend.oauthProviders.includes('apple') && (
                 <button className="oauth oauth--apple" disabled={busy} onClick={() => run(() => backend.signInWithOAuth('apple'))}>
                   <Icon name="apple" size={22} /> Continue with Apple
@@ -85,10 +85,10 @@ export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
                   <Icon name="mail" size={20} /> Email me a code
                 </Key>
               </form>
-            </motion.div>
+            </m.div>
           )}
           {step === 'code' && (
-            <motion.form key="code" className="auth__form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            <m.form key="code" className="auth__form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
               onSubmit={(e) => { e.preventDefault(); void run(async () => { await backend.verifyEmailCode(email.trim(), code.trim()); const s = await refreshSession(); if (s?.profile) await finish(); else setStep('name'); }); }}>
               <p className="small muted" style={{ textAlign: 'center', marginBottom: 10 }}>Enter the 6-digit code sent to <b>{email}</b></p>
               <input className="field field--code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="••••••"
@@ -98,10 +98,10 @@ export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
               <button type="button" className="pill pill--ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => { setStep('choose'); setCode(''); setErr(''); }}>
                 Use a different email
               </button>
-            </motion.form>
+            </m.form>
           )}
           {step === 'name' && (
-            <motion.form key="name" className="auth__form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            <m.form key="name" className="auth__form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
               onSubmit={(e) => {
                 e.preventDefault();
                 void run(async () => {
@@ -116,7 +116,7 @@ export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
               <Key tone="coral" block busy={busy} type="submit" disabled={!USERNAME_RE.test(name)}>
                 {demo ? 'Create player' : 'That’s me'}
               </Key>
-            </motion.form>
+            </m.form>
           )}
         </AnimatePresence>
 

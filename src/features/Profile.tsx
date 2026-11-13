@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, USERNAME_RE, type Group } from '../backend';
@@ -31,11 +31,11 @@ export function Profile() {
         <span className={`chip ${backend.mode === 'online' ? 'chip--lime' : 'chip--ink'}`}>{backend.mode === 'online' ? 'Online' : 'Demo mode'}</span>
       </header>
       <div className="scroll profile__body">
-        <motion.div className="profile__id" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <m.div className="profile__id" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <div className="profile__avatar">
-            <motion.div className="profile__burst" animate={{ rotate: 360 }} transition={{ duration: 70, repeat: Infinity, ease: 'linear' }} aria-hidden="true">
+            <div className="profile__burst spin" style={{ animationDuration: '70s' }} aria-hidden="true">
               <Burst size={170} color="var(--cream-3)" points={11} />
-            </motion.div>
+            </div>
             <Avatar name={p?.username ?? '?'} seed={p?.avatarSeed ?? 3} size={96} ring />
           </div>
           {p ? (
@@ -52,7 +52,7 @@ export function Profile() {
               <Key tone="coral" onClick={() => go({ name: 'auth', reason: 'signin' })}>Create player</Key>
             </>
           )}
-        </motion.div>
+        </m.div>
 
         {p && (
           <>
@@ -133,7 +133,7 @@ function Toggle({ icon, label, hint, on, onChange }: { icon: IconName; label: st
   return (
     <button className="profile__row" role="switch" aria-checked={on} onClick={() => onChange(!on)}>
       <Icon name={icon} /> <span>{label}{hint && <em className="muted"> · {hint}</em>}</span>
-      <span className={`switch ${on ? 'is-on' : ''}`}><motion.span layout transition={{ type: 'spring', stiffness: 700, damping: 35 }} /></span>
+      <span className={`switch ${on ? 'is-on' : ''}`}><m.span layout transition={{ type: 'spring', stiffness: 700, damping: 35 }} /></span>
     </button>
   );
 }

@@ -140,47 +140,6 @@
 .avatar svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .avatar span { position: relative; }
 
-/* ───────────────────────── Tab bar ───────────────────────── */
-.tabbar {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: calc(10px + var(--sab));
-  height: 66px;
-  background: var(--ink);
-  border-radius: 24px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  padding: 7px;
-  z-index: 20;
-  box-shadow: 0 14px 30px -12px rgba(41, 35, 42, 0.55);
-}
-.tabbar__item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  color: var(--cream-50);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border-radius: 17px;
-  transition: color 160ms var(--ease-out);
-}
-.tabbar__item[aria-current='page'] { color: var(--ink); }
-.tabbar__glow {
-  position: absolute;
-  inset: 0;
-  background: var(--lime);
-  border-radius: 17px;
-  z-index: -1;
-}
-.tabbar__item > * { position: relative; }
-
 /* ───────────────────────── Sheet ───────────────────────── */
 .sheet-backdrop {
   position: absolute;

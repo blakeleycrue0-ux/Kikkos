@@ -1,7 +1,6 @@
-import { AnimatePresence, MotionConfig, motion, type Variants } from 'motion/react';
+import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m, type Variants } from 'motion/react';
 import { AppProvider, useApp } from './app/store';
 import type { Direction, Route } from './app/routes';
-import { TabBar } from './components/TabBar';
 import { Toasts } from './components/Toasts';
 import { lazy, Suspense, useEffect } from 'react';
 import { Home } from './features/Home';
@@ -33,6 +32,8 @@ const Profile = lazy(() => loaders.Profile().then((m) => ({ default: m.Profile }
 const Results = lazy(() => loaders.Results().then((m) => ({ default: m.Results })));
 const World = lazy(() => loaders.World().then((m) => ({ default: m.World })));
 
+const loadMaxFeatures = () => import('./app/motionFeatures').then((r) => r.default);
+
 function usePrefetchScreens() {
   useEffect(() => {
     const run = () => Object.values(loaders).forEach((l) => { void l().catch(() => {}); });
@@ -42,20 +43,22 @@ function usePrefetchScreens() {
   }, []);
 }
 
-const spring = { type: 'spring' as const, stiffness: 380, damping: 38, mass: 0.9 };
+// iOS-like curve; navigation settles in ~220 ms.
+const nav = { duration: 0.22, ease: [0.32, 0.72, 0, 1] as const };
+const spring = nav;
 
 const variants: Variants = {
   initial: (d: Direction) =>
     d === 'push' ? { x: '100%', opacity: 1, scale: 1 } :
     d === 'pop' ? { x: '-28%', opacity: 0.6, scale: 1 } :
-    d === 'up' ? { y: '8%', opacity: 0, scale: 0.98 } :
-    { opacity: 0, scale: 0.985 },
+    d === 'up' ? { y: 24, opacity: 0, scale: 1 } :
+    { opacity: 0, scale: 1 },
   animate: { x: 0, y: 0, opacity: 1, scale: 1, transition: spring },
   exit: (d: Direction) =>
     d === 'push' ? { x: '-28%', opacity: 0.6, transition: spring } :
     d === 'pop' ? { x: '100%', opacity: 1, zIndex: 2, transition: spring } :
-    d === 'up' ? { opacity: 0, transition: { duration: 0.18 } } :
-    { opacity: 0, transition: { duration: 0.16 } },
+    d === 'up' ? { opacity: 0, transition: { duration: 0.12 } } :
+    { opacity: 0, transition: { duration: 0.12 } },
 };
 
 function screenFor(r: Route) {
@@ -87,12 +90,11 @@ function Shell() {
   return (
     <div className="app-frame">
       <AnimatePresence initial={false} custom={direction}>
-        <motion.div key={keyFor(route, depth)} className="screen-host" custom={direction}
+        <m.div key={keyFor(route, depth)} className="screen-host" custom={direction}
           variants={variants} initial="initial" animate="animate" exit="exit">
           <Suspense fallback={<div className="screen screen--loading" />}>{screenFor(route)}</Suspense>
-        </motion.div>
+        </m.div>
       </AnimatePresence>
-      {route.name === 'tabs' && <TabBar active={route.tab} />}
       <div id="overlay-root" className="overlay-root" />
       <Toasts />
     </div>
@@ -102,7 +104,11 @@ function Shell() {
 export default function App() {
   return (
     <MotionConfig reducedMotion="user">
-      <AppProvider><Shell /></AppProvider>
+      {/* Core animations ship in the main bundle; drag/layout features stream in right after. */}
+      <LazyMotion features={domAnimation}>
+        <LazyMotion features={loadMaxFeatures}><span hidden /></LazyMotion>
+        <AppProvider><Shell /></AppProvider>
+      </LazyMotion>
     </MotionConfig>
   );
 }

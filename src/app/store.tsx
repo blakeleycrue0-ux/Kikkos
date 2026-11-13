@@ -59,12 +59,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setStack((s) => (s.length > 1 ? s.slice(0, -1) : [{ name: 'tabs', tab: 'home' }]));
   }, []);
 
+  // No persistent tab bar: Today is the root, sections are pushed on top of it
+  // so the back arrow always returns home.
   const setTab = useCallback((tab: Tab) => {
-    setDirection('fade');
     setStack((s) => {
       const top = s[s.length - 1];
       if (top.name === 'tabs' && top.tab === tab) return s;
-      return [{ name: 'tabs', tab }];
+      if (tab === 'home') { setDirection('pop'); return [{ name: 'tabs', tab: 'home' }]; }
+      setDirection('push');
+      try { history.pushState({ kikko: true }, ''); } catch { /* noop */ }
+      return [{ name: 'tabs', tab: 'home' }, { name: 'tabs', tab }];
     });
   }, []);
 

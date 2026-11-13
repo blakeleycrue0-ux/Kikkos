@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/store';
 import type { Route } from '../app/routes';
@@ -64,7 +64,10 @@ export function Play({ route }: { route: PlayRoute }) {
     if (finished.current) return;
     finished.current = true;
     const s = eng.state;
+    // show the "Time!" stamp briefly while the server verifies in parallel (no artificial wait beyond that)
+    const minShow = new Promise((r) => setTimeout(r, daily ? 600 : 700));
     if (!daily) {
+      await minShow;
       const prevBest = load<number>('practice-best', 0);
       if (s.score > prevBest) save('practice-best', s.score);
       go({ name: 'results', mode: 'practice', score: s.score, correct: s.correct, wrong: s.wrong, best: s.score > prevBest && s.score > 0, prevBest }, { replace: true, direction: 'fade' });
@@ -73,11 +76,12 @@ export function Play({ route }: { route: PlayRoute }) {
     const day = today?.day ?? '';
     const number = today?.number ?? 0;
     try {
-      const result = await backend.submitAttempt(route.attempt.attemptId, taps.current);
+      const [result] = await Promise.all([backend.submitAttempt(route.attempt.attemptId, taps.current), minShow]);
       remove('live-attempt');
       void refreshToday();
       go({ name: 'results', mode: 'daily', result, day, number }, { replace: true, direction: 'fade' });
     } catch (e) {
+      await minShow;
       void refreshToday();
       go({ name: 'results', mode: 'daily', result: null, error: (e as Error).message, day, number,
         retry: { attemptId: route.attempt.attemptId, taps: taps.current } }, { replace: true, direction: 'fade' });
@@ -105,7 +109,7 @@ export function Play({ route }: { route: PlayRoute }) {
           ph = 'over'; setPhase('over'); setSecs(0);
           if (barRef.current) barRef.current.style.transform = 'scaleX(0)';
           fx.end();
-          later(() => void finish(), 1100);
+          void finish();
         }
         return;
       }
@@ -156,14 +160,14 @@ export function Play({ route }: { route: PlayRoute }) {
         <div className="play__score">
           <span className="eyebrow">Score</span>
           <div className="play__score-row">
-          <motion.span key={score} className="num play__score-n" initial={{ scale: 1.18 }} animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 600, damping: 22 }}>{score.toLocaleString()}</motion.span>
+          <m.span key={score} className="num play__score-n" initial={{ scale: 1.18 }} animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 22 }}>{score.toLocaleString()}</m.span>
           <div className="play__pops">
             <AnimatePresence>
               {pops.map((p) => (
-                <motion.span key={p.id} className={`play__pop ${p.good ? 'is-good' : 'is-bad'}`}
+                <m.span key={p.id} className={`play__pop ${p.good ? 'is-good' : 'is-bad'}`}
                   initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: -14 }} exit={{ opacity: 0, y: -26 }}
-                  transition={{ duration: 0.35 }}>{p.text}</motion.span>
+                  transition={{ duration: 0.35 }}>{p.text}</m.span>
               ))}
             </AnimatePresence>
           </div>
@@ -181,7 +185,7 @@ export function Play({ route }: { route: PlayRoute }) {
       <div className="play__bar"><div ref={barRef} className={`play__bar-fill ${urgent ? 'is-urgent' : ''}`} /></div>
 
       <div className="play__arena">
-        <motion.div key={shown.index} className={`play__grid ${locked ? 'is-locked' : ''}`}
+        <m.div key={shown.index} className={`play__grid ${locked ? 'is-locked' : ''}`}
           style={{ gridTemplateColumns: `repeat(${shown.size}, 1fr)`, gap: shown.size >= 6 ? 6 : 8 }}
           initial="in" animate="on"
           variants={{ on: { transition: { staggerChildren: Math.min(0.006, 0.09 / n) } } }}>
@@ -189,7 +193,7 @@ export function Play({ route }: { route: PlayRoute }) {
             const isOdd = i === shown.odd;
             const f = flash && flash.cell === i && flash.round === shown.index ? flash.kind : null;
             return (
-              <motion.button key={i} type="button" className={`cell ${f ? `is-${f}` : ''}`}
+              <m.button key={i} type="button" className={`cell ${f ? `is-${f}` : ''}`}
                 aria-label={`Symbol ${i + 1}`}
                 variants={{ in: { scale: 0.7, opacity: 0 }, on: { scale: 1, opacity: 1 } }}
                 transition={{ type: 'spring', stiffness: 900, damping: 40 }}
@@ -197,10 +201,10 @@ export function Play({ route }: { route: PlayRoute }) {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap(i); } }}
                 animate={f === 'wrong' ? { x: [0, -7, 7, -4, 4, 0], scale: 1, opacity: 1 } : f === 'correct' ? { scale: 1.1, opacity: 1 } : undefined}>
                 <span className="cell__glyph"><Glyph look={isOdd ? shown.oddLook : shown.base} /></span>
-              </motion.button>
+              </m.button>
             );
           })}
-        </motion.div>
+        </m.div>
       </div>
 
         {!daily && (
@@ -208,25 +212,25 @@ export function Play({ route }: { route: PlayRoute }) {
         )}
       <AnimatePresence>
         {phase === 'countdown' && (
-          <motion.div className="play__overlay" exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            <motion.div className="play__count-burst" animate={{ rotate: 360 }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}>
+          <m.div className="play__overlay" exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <div className="play__count-burst spin" style={{ animationDuration: '12s' }}>
               <Burst size={240} color="var(--blue)" points={11} />
-            </motion.div>
+            </div>
             <AnimatePresence mode="popLayout">
-              <motion.span key={count} className="num play__count" initial={{ scale: 1.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              <m.span key={count} className="num play__count" initial={{ scale: 1.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.6, opacity: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 22 }}>
                 {count}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
             <p className="eyebrow play__count-hint">{daily ? 'Official attempt' : 'Practice'} · find the odd one</p>
-          </motion.div>
+          </m.div>
         )}
         {phase === 'over' && (
-          <motion.div className="play__overlay play__overlay--over" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <motion.span className="display play__stamp" initial={{ scale: 2.2, rotate: -14, opacity: 0 }} animate={{ scale: 1, rotate: -6, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 16 }}>Time!</motion.span>
+          <m.div className="play__overlay play__overlay--over" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <m.span className="display play__stamp" initial={{ scale: 2.2, rotate: -14, opacity: 0 }} animate={{ scale: 1, rotate: -6, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 16 }}>Time!</m.span>
             {daily && <p className="small play__sending"><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2.5 }} /> Verifying score</p>}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

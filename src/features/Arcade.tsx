@@ -1,7 +1,7 @@
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useApp } from '../app/store';
 import { Icon } from '../components/Icon';
-import { Key } from '../components/Key';
+import { Key, Press } from '../components/Key';
 import { Burst } from '../components/Motifs';
 import { Float } from '../illustrations/Float';
 import { MiniGrid } from '../illustrations/MiniGrid';
@@ -20,18 +20,21 @@ const LAB = [
 ];
 
 export function Arcade() {
-  const { go } = useApp();
+  const { go, back } = useApp();
   const best = load<number>('practice-best', 0);
   const practice = () => go({ name: 'play', mode: 'practice', seed: crypto.randomUUID?.() ?? String(Math.random()) }, { direction: 'up' });
   return (
     <div className="screen arcade">
       <div className="scroll arcade__scroll">
         <header className="page-head">
-          <h1 className="display d-lg">Arcade</h1>
+          <div className="title-with-back">
+            <Press className="icon-btn" onClick={back} aria-label="Back"><Icon name="back" /></Press>
+            <h1 className="display d-lg">Arcade</h1>
+          </div>
           <p className="small muted">Practice anytime. Unranked, and it never touches your daily shot.</p>
         </header>
 
-        <motion.section className="feature on-dark" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}>
+        <m.section className="feature on-dark" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           <div className="feature__burst" aria-hidden="true"><Burst size={200} color="var(--ink-3)" points={10} /></div>
           <div className="feature__art" aria-hidden="true">
             <Float dur={4.6} dy={4} rot={-6}>
@@ -48,16 +51,16 @@ export function Arcade() {
             </div>
             <Key tone="lime" onClick={practice}><Icon name="bolt" size={20} /> Practice</Key>
           </div>
-        </motion.section>
+        </m.section>
 
         <h3 className="eyebrow muted arcade__lab-title">In the lab</h3>
         <ul className="lab">
           {LAB.map((g, i) => (
-            <motion.li key={g.name} className="lab__card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.06 }}>
+            <m.li key={g.name} className="lab__card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, delay: 0.06 + i * 0.03 }}>
               <span className="lab__art" style={{ background: g.color }}>{g.art}</span>
               <span className="lab__copy"><b>{g.name}</b><span className="small muted">{g.blurb}</span></span>
               <span className="chip chip--outline lab__soon"><Icon name="lock" size={13} stroke={2.6} /> Soon</span>
-            </motion.li>
+            </m.li>
           ))}
         </ul>
         <p className="small muted arcade__lab-note">New games join the daily rotation as they’re finished.</p>

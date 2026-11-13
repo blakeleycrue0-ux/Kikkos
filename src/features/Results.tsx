@@ -1,17 +1,16 @@
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useState } from 'react';
 import { useApp } from '../app/store';
 import type { Route } from '../app/routes';
 import { backend } from '../backend';
 import { AnimatedNumber } from '../components/AnimatedNumber';
-import { useNow } from '../components/hooks';
+import { NextGame } from '../components/NextGame';
 import { Icon } from '../components/Icon';
 import { Key, Press } from '../components/Key';
 import { Burst, ImpactDashes } from '../components/Motifs';
 import { fx } from '../lib/feedback';
 import { remove } from '../lib/prefs';
 import { shareOrCopy } from '../lib/share';
-import { formatHMS, msUntilNextDay } from '../lib/time';
 
 type ResultsRoute = Extract<Route, { name: 'results' }>;
 
@@ -23,7 +22,6 @@ function DailyResults({ route }: { route: Extract<ResultsRoute, { mode: 'daily' 
   const { go, setTab, today, toast, refreshToday } = useApp();
   const [counted, setCounted] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const now = useNow(1000, today?.serverOffsetMs ?? 0);
   const r = route.result;
 
   const retry = async () => {
@@ -76,29 +74,29 @@ function DailyResults({ route }: { route: Extract<ResultsRoute, { mode: 'daily' 
         <Press className="icon-btn icon-btn--light" onClick={() => go({ name: 'tabs', tab: 'home' }, { reset: true })} aria-label="Close"><Icon name="close" /></Press>
       </header>
       <div className="scroll results__body">
-        <motion.span className="eyebrow results__eyebrow" initial={{ opacity: 0 }} animate={{ opacity: 0.8 }}>Odd Spot · Final score</motion.span>
+        <m.span className="eyebrow results__eyebrow" initial={{ opacity: 0 }} animate={{ opacity: 0.8 }}>Odd Spot · Final score</m.span>
         <div className="results__score-wrap">
-          <motion.div className="results__burst" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', stiffness: 180, damping: 16, delay: 0.1 }}>
+          <m.div className="results__burst" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22 }}>
             <Burst size={250} color="var(--blue-soft)" points={12} />
-          </motion.div>
-          <AnimatedNumber className="num results__score" value={r.score} duration={1.4} delay={0.25}
+          </m.div>
+          <AnimatedNumber className="num results__score" value={r.score} duration={0.85} delay={0.05}
             onDone={() => { if (!counted) { setCounted(true); fx.reveal(); } }} />
         </div>
-        <motion.div className="results__stats" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <m.div className="results__stats" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.2 }}>
           <span className="chip chip--light"><Icon name="check" size={16} stroke={3} /> {r.correct} found</span>
           <span className="chip chip--light"><Icon name="x" size={16} stroke={3} /> {r.wrong} {r.wrong === 1 ? 'miss' : 'misses'}</span>
-        </motion.div>
+        </m.div>
 
         <AnimatePresence>
           {counted && (
-            <motion.div className="rank-card" initial={{ y: 60, opacity: 0, scale: 0.94 }} animate={{ y: 0, opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 24 }}>
+            <m.div className="rank-card" initial={{ y: 60, opacity: 0, scale: 0.94 }} animate={{ y: 0, opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 520, damping: 34 }}>
               {r.personalBest && r.score > 0 && (
-                <motion.span className="rank-card__pb" initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: -6 }}
+                <m.span className="rank-card__pb" initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: -6 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 14, delay: 0.25 }}>
                   <ImpactDashes size={26} a="var(--ink)" b="var(--ink)" /> Personal best
-                </motion.span>
+                </m.span>
               )}
               {r.verified && r.rank ? (
                 <>
@@ -115,17 +113,17 @@ function DailyResults({ route }: { route: Extract<ResultsRoute, { mode: 'daily' 
                   <p className="rank-card__demo">Saved on this device. World ranks appear once the server is connected.</p>
                 </>
               )}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>
-      <motion.footer className="results__foot" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+      <m.footer className="results__foot" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.25 }}>
         <div className="results__actions">
           <Key tone="lime" onBlue size="lg" block onClick={() => setTab('world')}><Icon name="globe" size={21} /> Leaderboard</Key>
           <Press className="icon-btn icon-btn--light results__share" onClick={share} aria-label="Share result"><Icon name="share" /></Press>
         </div>
-        <p className="small results__next">Next game in <span className="num">{formatHMS(msUntilNextDay(now))}</span></p>
-      </motion.footer>
+        <p className="small results__next">Next game in <NextGame offset={today?.serverOffsetMs ?? 0} /></p>
+      </m.footer>
     </div>
   );
 }
@@ -150,9 +148,9 @@ function PracticeResults({ route }: { route: Extract<ResultsRoute, { mode: 'prac
         </div>
         <div className="rank-card rank-card--plain">
           {route.best ? (
-            <motion.span className="rank-card__pb" initial={{ scale: 0 }} animate={{ scale: 1, rotate: -6 }} transition={{ type: 'spring', stiffness: 500, damping: 14, delay: 0.6 }}>
+            <m.span className="rank-card__pb" initial={{ scale: 0 }} animate={{ scale: 1, rotate: -6 }} transition={{ type: 'spring', stiffness: 500, damping: 14, delay: 0.6 }}>
               New practice best
-            </motion.span>
+            </m.span>
           ) : null}
           <span className="eyebrow muted">Practice best</span>
           <span className="num rank-card__rank">{Math.max(route.prevBest, route.score).toLocaleString()}</span>

@@ -1,10 +1,10 @@
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, type BoardRow, type HistoryItem, type WorldBoard } from '../backend';
 import { Avatar } from '../components/Avatar';
 import { Icon } from '../components/Icon';
-import { Key } from '../components/Key';
+import { Key, Press } from '../components/Key';
 import { Burst } from '../components/Motifs';
 import { dayKey, formatDayLabel, shiftDay } from '../lib/time';
 import { TIE_BREAK_DOC } from '@shared/oddspot.ts';
@@ -13,7 +13,7 @@ import { useStats } from './useStats';
 type Seg = 'today' | 'yesterday' | 'mine';
 
 export function World() {
-  const { today, session, go } = useApp();
+  const { today, session, go, back } = useApp();
   const [seg, setSeg] = useState<Seg>('today');
   const [board, setBoard] = useState<WorldBoard | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -37,7 +37,10 @@ export function World() {
       <header className="world__head on-dark">
         <div className="world__burst" aria-hidden="true"><Burst size={220} color="var(--blue-soft)" points={11} /></div>
         <div className="world__title-row">
-          <h1 className="display d-lg">World</h1>
+          <div className="title-with-back">
+            <Press className="icon-btn icon-btn--light" onClick={back} aria-label="Back"><Icon name="back" /></Press>
+            <h1 className="display d-lg">World</h1>
+          </div>
           {seg !== 'mine' && board && state === 'ready' && (
             <span className={`chip ${board.final ? 'chip--cream' : 'chip--lime'}`}>
               {board.final ? 'Final' : <><span className="live-dot" /> Live · provisional</>}
@@ -73,7 +76,7 @@ export function Segmented<T extends string>({ value, onChange, options, light }:
     <div className={`seg ${light ? 'seg--light' : ''}`} role="tablist">
       {options.map(([v, label]) => (
         <button key={v} role="tab" aria-selected={value === v} className="seg__item" onClick={() => onChange(v)}>
-          {value === v && <motion.span layoutId={`seg-${options.map((o) => o[0]).join()}`} className="seg__thumb" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+          {value === v && <m.span layoutId={`seg-${options.map((o) => o[0]).join()}`} className="seg__thumb" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
           <span>{label}</span>
         </button>
       ))}
@@ -118,9 +121,9 @@ function Board({ board }: { board: WorldBoard }) {
 
 function TopCard({ row, place }: { row: BoardRow; place: 1 | 2 | 3 }) {
   return (
-    <motion.div className={`top top--${place} ${row.isMe ? 'is-me' : ''}`}
+    <m.div className={`top top--${place} ${row.isMe ? 'is-me' : ''}`}
       initial={{ opacity: 0, y: 24, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 26, delay: place * 0.07 }}>
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1], delay: place * 0.03 }}>
       <span className="num top__place">{place}</span>
       <Avatar name={row.username} seed={row.avatarSeed} size={place === 1 ? 52 : 40} />
       <div className="top__who">
@@ -128,19 +131,19 @@ function TopCard({ row, place }: { row: BoardRow; place: 1 | 2 | 3 }) {
         <span className="num top__score">{row.score.toLocaleString()}</span>
       </div>
       {row.sample && <span className="top__sample">Sample</span>}
-    </motion.div>
+    </m.div>
   );
 }
 
 function Row({ row, i }: { row: BoardRow; i: number }) {
   return (
-    <motion.li className={`row ${row.isMe ? 'is-me' : ''}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.2 + Math.min(i, 10) * 0.03 }}>
+    <m.li className={`row ${row.isMe ? 'is-me' : ''}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.18, delay: 0.08 + Math.min(i, 10) * 0.015 }}>
       <span className="num row__rank">{row.rank}</span>
       <Avatar name={row.username} seed={row.avatarSeed} size={34} />
       <span className="row__name">{row.username}{row.isMe && <em> · you</em>}{row.sample && <span className="row__sample">sample</span>}</span>
       <span className="num row__score">{row.score.toLocaleString()}</span>
-    </motion.li>
+    </m.li>
   );
 }
 
@@ -154,14 +157,14 @@ function History({ items }: { items: HistoryItem[] | null }) {
     <ol className="board">
       <AnimatePresence initial>
         {items.map((h, i) => (
-          <motion.li key={h.day} className="row" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+          <m.li key={h.day} className="row" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, delay: Math.min(i, 10) * 0.015 }}>
             <span className="num row__rank">#{h.number}</span>
             <span className="row__name">{formatDayLabel(h.day)}<span className="row__meta">{h.status === 'scored' ? `${h.correct} found · ${h.wrong} miss` : h.status === 'rejected' ? 'not verified' : 'unfinished'}</span></span>
             <span className="row__right">
               <span className="num row__score">{h.score.toLocaleString()}</span>
               {h.rank && <span className="small muted">#{h.rank} / {h.total}</span>}
             </span>
-          </motion.li>
+          </m.li>
         ))}
       </AnimatePresence>
     </ol>
@@ -170,12 +173,12 @@ function History({ items }: { items: HistoryItem[] | null }) {
 
 export function Empty({ title, text, action }: { title: string; text: string; action?: React.ReactNode }) {
   return (
-    <motion.div className="empty" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+    <m.div className="empty" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <div className="empty__mark" aria-hidden="true"><Burst size={64} color="var(--cream-3)" points={9} /></div>
       <h2 className="display d-sm">{title}</h2>
       <p className="small muted">{text}</p>
       {action && <div className="empty__action">{action}</div>}
-    </motion.div>
+    </m.div>
   );
 }
 

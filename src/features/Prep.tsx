@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, BackendError } from '../backend';
@@ -17,8 +17,8 @@ const RULES: { icon: IconName; text: string }[] = [
 ];
 
 const rise = (i: number) => ({
-  initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0 },
-  transition: { type: 'spring' as const, stiffness: 340, damping: 30, delay: 0.1 + i * 0.05 },
+  initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] as const, delay: 0.04 + i * 0.025 },
 });
 
 export function Prep() {
@@ -51,33 +51,33 @@ export function Prep() {
         <span style={{ width: 46 }} />
       </header>
       <div className="scroll prep__body">
-        <motion.div className="prep__art" initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 240, damping: 22 }} aria-hidden="true">
-          <motion.div className="prep__burst" animate={{ rotate: -360 }} transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}>
+        <m.div className="prep__art" initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 520, damping: 34 }} aria-hidden="true">
+          <div className="prep__burst spin spin--rev" style={{ animationDuration: '80s' }}>
             <Burst size={260} color="var(--blue-soft)" points={12} />
-          </motion.div>
+          </div>
           <Float dur={4.4} dy={5} rot={-3}>
             <div className="tile tile--cream prep__tile">
               <MiniGrid size={4} odd={9} glyph="chevron" oddGlyph="tri" gap={6} cell="var(--cream-2)" radius={10} />
             </div>
           </Float>
-        </motion.div>
+        </m.div>
 
-        <motion.h1 className="display d-xl prep__title" {...rise(0)}>Odd Spot</motion.h1>
+        <m.h1 className="display d-xl prep__title" {...rise(0)}>Odd Spot</m.h1>
         <ul className="prep__rules">
           {RULES.map((r, i) => (
-            <motion.li key={r.icon} {...rise(1 + i)}>
+            <m.li key={r.icon} {...rise(1 + i)}>
               <span className="prep__rule-icon"><Icon name={r.icon} size={18} stroke={2.6} /></span>{r.text}
-            </motion.li>
+            </m.li>
           ))}
         </ul>
-        <motion.div className="prep__facts" {...rise(4)}>
+        <m.div className="prep__facts" {...rise(4)}>
           <div><span className="num">30s</span><span className="small">Duration</span></div>
           <div><span className="num">1</span><span className="small">Official try</span></div>
           <div><span className="num">{backend.mode === 'online' ? 'World' : 'Local'}</span><span className="small">{backend.mode === 'online' ? 'Ranked' : 'Demo score'}</span></div>
-        </motion.div>
+        </m.div>
       </div>
-      <motion.footer className="prep__foot" {...rise(5)}>
+      <m.footer className="prep__foot" {...rise(5)}>
         {error && <p className="prep__error" role="alert">{error}</p>}
         {played ? (
           <Key tone="cream" onBlue size="lg" block onClick={back}>Already played today</Key>
@@ -87,7 +87,7 @@ export function Prep() {
             <Key tone="lime" onBlue size="lg" block busy={busy} onClick={start}>I’m ready</Key>
           </>
         )}
-      </motion.footer>
+      </m.footer>
     </div>
   );
 }
