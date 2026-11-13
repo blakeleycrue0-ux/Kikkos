@@ -2,4 +2,5 @@
 project_id = "kikko"
 
 [functions.daily]
-verify_jwt = true
+# The function authenticates the user itself (auth.getUser), which also works with the new publishable keys.
+verify_jwt = false

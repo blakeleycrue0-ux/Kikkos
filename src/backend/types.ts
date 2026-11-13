@@ -12,6 +12,7 @@ export interface Profile {
 export interface Session {
   userId: string;
   email?: string;
+  anonymous?: boolean; // quick-play account tied to this device
   profile: Profile | null; // null = signed in but no username yet
 }
 
@@ -107,6 +108,10 @@ export class BackendError extends Error {
 export interface Backend {
   mode: Mode;
   oauthProviders: ('apple' | 'google')[];
+  /** Quick play: a real account without email (Supabase anonymous sign-in). */
+  quickPlay: boolean;
+  emailLogin: boolean;
+  signInQuick(): Promise<void>;
   getSession(): Promise<Session | null>;
   onAuthChange(cb: () => void): () => void;
   signInWithOAuth(provider: 'apple' | 'google'): Promise<void>;

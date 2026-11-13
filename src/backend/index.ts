@@ -1,15 +1,15 @@
-import { OAUTH_PROVIDERS, ONLINE } from '../lib/config';
+import { EMAIL_LOGIN, OAUTH_PROVIDERS, ONLINE, SUPABASE_ANON_KEY, SUPABASE_URL } from '../lib/config';
+import { load, save } from '../lib/prefs';
 import { createDemoBackend } from './demo';
 import type { Backend } from './types';
 
-/**
- * The Supabase client is only downloaded when Supabase is configured, so the
- * demo build stays light.
- */
-function lazyOnline(): Backend {
+interface AuthCaps { quickPlay: boolean; emailLogin: boolean }
+
+/** The Supabase client is only downloaded when the online backend is active. */
+function lazyOnline(caps: AuthCaps): Backend {
   let loading: Promise<Backend> | null = null;
-  const load = () => (loading ??= import('./online').then((m) => m.createOnlineBackend()));
-  const base = { mode: 'online' as const, oauthProviders: OAUTH_PROVIDERS };
+  const load = () => (loading ??= import('./online').then((m) => m.createOnlineBackend(caps)));
+  const base = { mode: 'online' as const, oauthProviders: OAUTH_PROVIDERS, quickPlay: caps.quickPlay, emailLogin: caps.emailLogin };
   return new Proxy(base as unknown as Backend, {
     get(target, prop: string) {
       if (prop in target) return (target as unknown as Record<string, unknown>)[prop];
@@ -27,5 +27,29 @@ function lazyOnline(): Backend {
   });
 }
 
-export const backend: Backend = ONLINE ? lazyOnline() : createDemoBackend();
+/** Live binding: replaced by the online backend once we know players can actually sign in. */
+// eslint-disable-next-line import/no-mutable-exports
+export let backend: Backend = createDemoBackend();
+
+/**
+ * Online mode is used only when Supabase is configured AND at least one sign-in
+ * method players can really use is enabled. Otherwise the app stays in the
+ * clearly-labelled demo mode. The result is cached for an instant next launch.
+ */
+export async function initBackend(): Promise<void> {
+  if (!ONLINE) return;
+  const cached = load<AuthCaps | null>('auth-caps', null);
+  const probe = fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_ANON_KEY } })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    .then((s: { external?: Record<string, boolean> }) => {
+      const caps = { quickPlay: !!s.external?.anonymous_users, emailLogin: EMAIL_LOGIN && !!s.external?.email };
+      save('auth-caps', caps);
+      return caps;
+    });
+  let caps: AuthCaps | null;
+  if (cached && (cached.quickPlay || cached.emailLogin)) { caps = cached; void probe.catch(() => {}); } // refresh in the background
+  else caps = await Promise.race([probe.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 1500))]);
+  if (caps && (caps.quickPlay || caps.emailLogin)) backend = lazyOnline(caps);
+}
+
 export * from './types';

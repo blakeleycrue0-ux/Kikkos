@@ -42,8 +42,8 @@ export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
   const title = reason === 'play' ? <>One step<br />before you play</> :
     reason === 'groups' ? <>Pick a name<br />for your rivals</> : <>Save your<br />scores</>;
   const sub = demo
-    ? 'Ranked games need a player name. No server is configured, so this demo keeps your player on this device.'
-    : 'Ranked games need an account, so your one daily shot is really yours. Practice is always open.';
+    ? 'Ranked games need a player name. Online play isn’t switched on yet, so this demo keeps your player on this device.'
+    : 'Ranked games need a player, so your one daily shot is really yours. Practice is always open.';
 
   return (
     <div className="screen auth">
@@ -65,6 +65,16 @@ export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
         <AnimatePresence mode="wait" initial={false}>
           {step === 'choose' && (
             <m.div key="choose" className="auth__form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              {backend.quickPlay && (
+                <>
+                  <Key tone="coral" block busy={busy} onClick={() => run(async () => { await backend.signInQuick(); const s = await refreshSession(); if (s?.profile) await finish(); else setStep('name'); })}>
+                    <Icon name="bolt" size={20} /> Play now
+                  </Key>
+                  <p className="small muted auth__quick-note">No email needed. Your player is saved on this device.</p>
+                  {!backend.emailLogin && <div className="field-error">{err}</div>}
+                </>
+              )}
+              {backend.quickPlay && (backend.emailLogin || backend.oauthProviders.length > 0) && <div className="auth__or"><span>or</span></div>}
               {backend.oauthProviders.includes('apple') && (
                 <button className="oauth oauth--apple" disabled={busy} onClick={() => run(() => backend.signInWithOAuth('apple'))}>
                   <Icon name="apple" size={22} /> Continue with Apple
@@ -75,8 +85,8 @@ export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
                   <Icon name="google" size={20} /> Continue with Google
                 </button>
               )}
-              {backend.oauthProviders.length > 0 && <div className="auth__or"><span>or with email</span></div>}
-              <form onSubmit={(e) => { e.preventDefault(); void run(async () => { await backend.sendEmailCode(email.trim()); setStep('code'); toast('Code sent. Check your inbox.', 'good'); }); }}>
+              {backend.oauthProviders.length > 0 && backend.emailLogin && <div className="auth__or"><span>or with email</span></div>}
+              {backend.emailLogin && <form onSubmit={(e) => { e.preventDefault(); void run(async () => { await backend.sendEmailCode(email.trim()); setStep('code'); toast('Code sent. Check your inbox.', 'good'); }); }}>
                 <label className="sr-only" htmlFor="email">Email</label>
                 <input id="email" className="field" type="email" inputMode="email" autoComplete="email" placeholder="you@email.com"
                   value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -84,7 +94,7 @@ export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
                 <Key tone="blue" block busy={busy} type="submit" disabled={!/^\S+@\S+\.\S+$/.test(email)}>
                   <Icon name="mail" size={20} /> Email me a code
                 </Key>
-              </form>
+              </form>}
             </m.div>
           )}
           {step === 'code' && (

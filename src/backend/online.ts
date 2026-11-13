@@ -11,9 +11,14 @@ import {
 type Row = Record<string, unknown>;
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
 
-export function createOnlineBackend(): Backend {
+export function createOnlineBackend(opts: { quickPlay: boolean; emailLogin: boolean }): Backend {
   const sb: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
+    auth: {
+      persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce',
+      // The default navigator.locks implementation can deadlock when auth calls overlap
+      // (e.g. during start-up); a pass-through lock keeps every call responsive.
+      lock: async <R>(_name: string, _timeout: number, fn: () => Promise<R>) => fn(),
+    },
   });
 
   async function uid(): Promise<string> {
@@ -23,19 +28,24 @@ export function createOnlineBackend(): Backend {
     return id;
   }
 
+  /** Calls the `daily` edge function directly with the user's access token. */
   async function call<T>(action: string, extra: Row = {}): Promise<T> {
-    const { data, error } = await sb.functions.invoke('daily', { body: { action, ...extra } });
-    if (error) {
-      let msg = 'Network error. Check your connection and try again.';
-      let code: string | undefined;
-      try {
-        const ctx = (error as { context?: Response }).context;
-        const body = ctx ? await ctx.json() : null;
-        if (body?.error) { msg = body.error; code = body.code; }
-      } catch { /* keep generic */ }
-      throw new BackendError(msg, code);
+    const { data } = await sb.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) throw new BackendError('Sign in to continue', 'auth');
+    let res: Response;
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/daily`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action, ...extra }),
+      });
+    } catch {
+      throw new BackendError('Network error. Check your connection and try again.');
     }
-    return data as T;
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new BackendError(body?.error ?? `Server error (${res.status})`, body?.code);
+    return body as T;
   }
 
   const toProfile = (r: Row): Profile => ({
@@ -49,16 +59,23 @@ export function createOnlineBackend(): Backend {
   return {
     mode: 'online',
     oauthProviders: OAUTH_PROVIDERS,
+    quickPlay: opts.quickPlay,
+    emailLogin: opts.emailLogin,
+    async signInQuick() {
+      const { error } = await sb.auth.signInAnonymously();
+      if (error) throw new BackendError(error.message);
+    },
 
     async getSession(): Promise<Session | null> {
       const { data } = await sb.auth.getSession();
       const user = data.session?.user;
       if (!user) return null;
       const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-      return { userId: user.id, email: user.email, profile: p ? toProfile(p) : null };
+      return { userId: user.id, email: user.email, anonymous: !!user.is_anonymous, profile: p ? toProfile(p) : null };
     },
     onAuthChange(cb) {
-      const { data } = sb.auth.onAuthStateChange(() => cb());
+      // Defer: calling Supabase inside this callback deadlocks its auth lock.
+      const { data } = sb.auth.onAuthStateChange(() => { setTimeout(cb, 0); });
       return () => data.subscription.unsubscribe();
     },
     async signInWithOAuth(provider) {
@@ -66,7 +83,7 @@ export function createOnlineBackend(): Backend {
       if (error) throw new BackendError(error.message);
     },
     async sendEmailCode(email) {
-      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: window.location.origin } });
       if (error) throw new BackendError(error.message);
     },
     async verifyEmailCode(email, code) {
@@ -85,7 +102,9 @@ export function createOnlineBackend(): Backend {
 
     async getToday(): Promise<TodayInfo> {
       const t0 = Date.now();
-      const r = await call<{ challenge: Row; attempt: Row | null; serverNow: number }>('today');
+      const { data, error } = await sb.rpc('my_today');
+      if (error) throw new BackendError(error.message.includes('sign in') ? 'Sign in to continue' : 'Could not reach the server', 'network');
+      const r = data as { challenge: Row; attempt: Row | null; serverNow: number };
       const rtt = Date.now() - t0;
       const a = r.attempt;
       return {

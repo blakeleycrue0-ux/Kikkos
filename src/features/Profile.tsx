@@ -91,7 +91,7 @@ export function Profile() {
           <button className="profile__row" onClick={() => setRules(true)}><Icon name="target" /> <span>How scoring works</span><Icon name="chevron" size={18} /></button>
           {p && (
             <button className="profile__row" onClick={async () => { await backend.signOut(); await refreshSession(); await refreshToday(); toast('Signed out'); setTab('home'); }}>
-              <Icon name="logout" /> <span>{backend.mode === 'demo' ? 'Remove local player' : 'Sign out'}</span>
+              <Icon name="logout" /> <span>{backend.mode === 'demo' ? 'Remove local player' : session?.anonymous ? 'Sign out (this player can’t be recovered)' : 'Sign out'}</span>
             </button>
           )}
           {backend.mode === 'demo' && (
@@ -100,7 +100,7 @@ export function Profile() {
             </button>
           )}
         </section>
-        <p className="small muted profile__foot">KIKKO · {backend.mode === 'online' ? 'Scores verified by the server' : 'Demo: no server configured, nothing leaves this device'}</p>
+        <p className="small muted profile__foot">KIKKO · {backend.mode === 'online' ? 'Scores verified by the server' : 'Demo: online play isn’t switched on yet, nothing leaves this device'}</p>
       </div>
 
       <Sheet open={editing} onClose={() => setEditing(false)} label="Edit name"><EditName onDone={() => setEditing(false)} /></Sheet>

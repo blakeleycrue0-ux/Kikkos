@@ -175,7 +175,7 @@ export function Home() {
 
         {backend.mode === 'demo' && (
           <m.p className="small muted home__demo" {...stagger(5)}>
-            <span className="demo-flag">Demo mode</span> No server configured. Scores stay on this device and aren’t verified.
+            <span className="demo-flag">Demo mode</span> Online play isn’t switched on yet. Scores stay on this device and aren’t verified.
           </m.p>
         )}
       </div>

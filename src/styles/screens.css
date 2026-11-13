@@ -462,3 +462,6 @@ em { font-style: normal; opacity: 0.65; }
 /* section headers: back arrow sits next to the title (no tab bar) */
 .title-with-back { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .title-with-back .icon-btn { flex-shrink: 0; width: 42px; height: 42px; border-radius: 14px; }
+.auth__quick-note { text-align: center; margin-top: 10px; }
+/* light card inside a dark screen: keep muted text readable */
+.on-dark .rank-card .muted { color: var(--ink-60); }

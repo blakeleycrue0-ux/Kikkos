@@ -1,7 +1,7 @@
 -- KIKKO core schema
 -- Daily challenges, one official attempt per user per day, world + group leaderboards.
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 -- ───────────────────────────── Profiles ─────────────────────────────
 create table public.profiles (
@@ -115,6 +115,7 @@ begin
   return false;
 end $$;
 revoke all on function public.hit_rate_limit from public, anon, authenticated;
+grant execute on function public.hit_rate_limit to service_role;
 
 -- ─────────────────────────── Helper: today ───────────────────────────
 -- The daily challenge flips at 00:00 UTC for everyone.
@@ -129,13 +130,14 @@ begin
     on conflict (day) do nothing;
   select * into c from daily_challenges where day = d;
   insert into challenge_secrets (challenge_id, seed)
-    values (c.id, encode(gen_random_bytes(18), 'hex'))
+    values (c.id, encode(extensions.gen_random_bytes(18), 'hex'))
     on conflict do nothing;
   return c;
 end $$;
 revoke all on function public.ensure_today from public, anon, authenticated;
+grant execute on function public.ensure_today to service_role;
 
-create or replace function public.server_now() returns timestamptz language sql stable as $$ select now() $$;
+create or replace function public.server_now() returns timestamptz language sql stable set search_path = public as $$ select now() $$;
 
 -- ───────────────────────── Leaderboards (RPC) ─────────────────────────
 create or replace view public.ranked_attempts with (security_invoker = false) as
@@ -149,6 +151,7 @@ create or replace view public.ranked_attempts with (security_invoker = false) as
   join daily_challenges c on c.id = a.challenge_id
   where a.status = 'scored';
 revoke all on public.ranked_attempts from anon, authenticated;
+grant select on public.ranked_attempts to service_role;
 
 create or replace function public.world_top(p_day date, p_limit int default 50)
 returns table (rank bigint, user_id uuid, username text, avatar_seed int, score int, correct int, wrong int, total bigint)
@@ -250,6 +253,12 @@ language sql stable security definer set search_path = public as $$
   order by c.day desc limit least(p_limit, 60);
 $$;
 
+-- Functions are executable by PUBLIC by default: lock them to signed-in users only.
+revoke execute on function public.world_top, public.world_around_me, public.group_board,
+  public.my_groups, public.create_group, public.join_group, public.my_history, public.server_now,
+  public.is_member
+  from public, anon;
 grant execute on function public.world_top, public.world_around_me, public.group_board,
-  public.my_groups, public.create_group, public.join_group, public.my_history, public.server_now
+  public.my_groups, public.create_group, public.join_group, public.my_history, public.server_now,
+  public.is_member
   to authenticated;

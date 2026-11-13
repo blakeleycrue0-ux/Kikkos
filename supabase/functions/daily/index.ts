@@ -5,6 +5,18 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { COUNTDOWN_MS, DURATION_MS, replay } from '../_shared/oddspot.ts';
 
 const SUBMIT_GRACE_MS = 10_000;
+
+/** Server-only secret key (legacy service_role JWT or the newer sb_secret_ key). Never sent to clients. */
+function serviceKey(): string {
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (legacy) return legacy;
+  try {
+    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}') as Record<string, string>;
+    const first = Object.values(keys)[0];
+    if (first) return first;
+  } catch { /* fall through */ }
+  throw new Error('No service key available');
+}
 const cors = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -18,16 +30,18 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
   const url = Deno.env.get('SUPABASE_URL')!;
-  const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+  const admin = createClient(url, serviceKey(), { auth: { persistSession: false } });
   const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
-  const { data: userData } = await admin.auth.getUser(token);
-  const user = userData?.user;
-  if (!user) return json({ error: 'sign in required' }, 401);
-
   let body: { action?: string; attemptId?: string; taps?: unknown };
   try { body = await req.json(); } catch { return json({ error: 'invalid json' }, 400); }
 
-  const { data: challenge, error: cErr } = await admin.rpc('ensure_today');
+  // Independent lookups run in parallel to keep each request short.
+  const [{ data: userData }, { data: challenge, error: cErr }] = await Promise.all([
+    admin.auth.getUser(token),
+    admin.rpc('ensure_today'),
+  ]);
+  const user = userData?.user;
+  if (!user) return json({ error: 'sign in required' }, 401);
   if (cErr || !challenge) return json({ error: 'could not load today' }, 500);
   const now = Date.now();
 
@@ -42,8 +56,10 @@ Deno.serve(async (req) => {
 
   if (body.action === 'start') {
     if (!profile) return json({ error: 'create a username first' }, 400);
-    const { data: limited } = await admin.rpc('hit_rate_limit',
-      { p_user: user.id, p_action: 'start', p_max: 10, p_window: '1 minute' });
+    const [{ data: limited }, { data: secret }] = await Promise.all([
+      admin.rpc('hit_rate_limit', { p_user: user.id, p_action: 'start', p_max: 10, p_window: '1 minute' }),
+      admin.from('challenge_secrets').select('seed').eq('challenge_id', challenge.id).single(),
+    ]);
     if (limited) return json({ error: 'slow down a little and try again' }, 429);
     const { data: attempt, error } = await admin.from('attempts')
       .insert({ user_id: user.id, challenge_id: challenge.id })
@@ -52,7 +68,6 @@ Deno.serve(async (req) => {
       if (error.code === '23505') return json({ error: 'already played today', code: 'already_played' }, 409);
       return json({ error: 'could not start attempt' }, 500);
     }
-    const { data: secret } = await admin.from('challenge_secrets').select('seed').eq('challenge_id', challenge.id).single();
     return json({
       attemptId: attempt.id,
       seed: secret!.seed,
@@ -64,11 +79,11 @@ Deno.serve(async (req) => {
   }
 
   if (body.action === 'submit') {
-    const { data: limited } = await admin.rpc('hit_rate_limit',
-      { p_user: user.id, p_action: 'submit', p_max: 10, p_window: '1 minute' });
+    const [{ data: limited }, { data: attempt }] = await Promise.all([
+      admin.rpc('hit_rate_limit', { p_user: user.id, p_action: 'submit', p_max: 10, p_window: '1 minute' }),
+      admin.from('attempts').select('*').eq('id', body.attemptId ?? '').eq('user_id', user.id).maybeSingle(),
+    ]);
     if (limited) return json({ error: 'slow down a little and try again' }, 429);
-    const { data: attempt } = await admin.from('attempts').select('*')
-      .eq('id', body.attemptId ?? '').eq('user_id', user.id).maybeSingle();
     if (!attempt) return json({ error: 'attempt not found' }, 404);
     if (attempt.status !== 'started') return json({ error: 'already submitted', code: 'duplicate' }, 409);
 
@@ -94,11 +109,13 @@ Deno.serve(async (req) => {
     if (!updated?.length) return json({ error: 'already submitted', code: 'duplicate' }, 409);
     if (!result.ok) return json({ error: `attempt rejected: ${result.reason}`, code: 'rejected' }, 422);
 
-    const { data: around } = await admin.from('ranked_attempts').select('rank,total')
-      .eq('challenge_id', attempt.challenge_id).eq('user_id', user.id).maybeSingle();
-    const { data: best } = await admin.from('attempts').select('score')
-      .eq('user_id', user.id).eq('status', 'scored').neq('id', attempt.id)
-      .order('score', { ascending: false }).limit(1).maybeSingle();
+    const [{ data: around }, { data: best }] = await Promise.all([
+      admin.from('ranked_attempts').select('rank,total')
+        .eq('challenge_id', attempt.challenge_id).eq('user_id', user.id).maybeSingle(),
+      admin.from('attempts').select('score')
+        .eq('user_id', user.id).eq('status', 'scored').neq('id', attempt.id)
+        .order('score', { ascending: false }).limit(1).maybeSingle(),
+    ]);
     return json({
       score: result.score, correct: result.correct, wrong: result.wrong, rounds: result.rounds,
       rank: around?.rank ?? null, total: around?.total ?? null,

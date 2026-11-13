@@ -63,6 +63,9 @@ export function createDemoBackend(): Backend {
   return {
     mode: 'demo',
     oauthProviders: [],
+    quickPlay: false,
+    emailLogin: false,
+    async signInQuick() { throw new BackendError('Not available in demo mode'); },
 
     async getSession(): Promise<Session | null> {
       const p = profile();

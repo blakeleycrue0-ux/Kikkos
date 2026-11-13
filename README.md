@@ -11,9 +11,11 @@ npm install
 npm run dev          # http://localhost:5173
 npm run build        # typecheck + production build to dist/
 npm run test:engine  # sanity checks for the shared game engine (Node 22+)
+# end-to-end check against a live Supabase project (needs two confirmed test users):
+# SUPABASE_URL=… SUPABASE_KEY=… QA_EMAIL_1=… QA_EMAIL_2=… QA_PASSWORD=… node --experimental-strip-types scripts/backend-check.mjs
 ```
 
-With no environment variables, KIKKO runs in **Demo mode**: fully playable, but the player, scores and groups stay in this browser's localStorage, scores aren't server-verified, and the World board shows **sample players clearly labelled "Example data"**. The UI says it's in Demo mode on every screen where that matters.
+With no environment variables, or while no player sign-in method is enabled in Supabase, KIKKO runs in **Demo mode**: fully playable, but the player, scores and groups stay in this browser's localStorage, scores aren't server-verified, and the World board shows **sample players clearly labelled "Example data"**. The UI says it's in Demo mode on every screen where that matters.
 
 ## Go online (Supabase)
 
@@ -22,7 +24,7 @@ With no environment variables, KIKKO runs in **Demo mode**: fully playable, but 
 3. `supabase db push` applies `supabase/migrations/20261113000000_kikko_core.sql`.
 4. `supabase functions deploy daily`. The function uses the auto-provided `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` server-side only. Optionally set `ALLOWED_ORIGIN` to your site's origin.
 5. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (the public anon key, **never** the service role key).
-6. Auth: email one-time codes work once the Email provider is on. In the "Magic Link" email template, include `{{ .Token }}` so users get the 6-digit code. For Apple / Google, enable them in Supabase Auth, add your site URL to the redirect allow-list, then set `VITE_AUTH_PROVIDERS=apple,google`. Buttons only appear for providers listed there.
+6. Auth: **Quick play** (no email) uses Supabase anonymous sign-ins: Authentication → Sign In / Providers → *Allow anonymous sign-ins*. The app checks this at start-up and switches from Demo to online by itself. Email codes need a custom SMTP sender (Supabase's built-in mailer is heavily rate-limited); after that set `VITE_AUTH_EMAIL=on`. Email one-time codes work once the Email provider is on. In the "Magic Link" email template, include `{{ .Token }}` so users get the 6-digit code. For Apple / Google, enable them in Supabase Auth, add your site URL to the redirect allow-list, then set `VITE_AUTH_PROVIDERS=apple,google`. Buttons only appear for providers listed there.
 
 Deploy `dist/` to any static host (Netlify, Vercel, Cloudflare Pages). Serve it over HTTPS so the PWA installs.
 

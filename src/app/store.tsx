@@ -39,7 +39,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [direction, setDirection] = useState<Direction>('fade');
   const [session, setSession] = useState<Session | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  const [today, setToday] = useState<TodayInfo | null>(null);
+  // Last known state for today, shown instantly while the server refreshes it.
+  const [today, setToday] = useState<TodayInfo | null>(() => {
+    const c = load<TodayInfo | null>('today-cache', null);
+    return c && c.day === new Date().toISOString().slice(0, 10) ? c : null;
+  });
   const [todayError, setTodayError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
@@ -100,6 +104,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const refreshToday = useCallback(async () => {
     if (backend.mode === 'online' && !(await backend.getSession())) {
+      save('today-cache', null);
       // signed-out visitors still see today's challenge; attempt state needs an account
       const { dayKey, dayNumber } = await import('../lib/time');
       const d = dayKey();
@@ -108,7 +113,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      setToday(await backend.getToday());
+      const t = await backend.getToday();
+      setToday(t);
+      save('today-cache', t);
       setTodayError(null);
     } catch (e) {
       setTodayError((e as Error).message);
