@@ -1,8 +1,9 @@
 import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m, type Variants } from 'motion/react';
 import { AppProvider, useApp } from './app/store';
 import type { Direction, Route } from './app/routes';
+import { setUpdateBusy } from './lib/updates';
 import { Toasts } from './components/Toasts';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react';
 import { Home } from './features/Home';
 import { Onboarding } from './features/Onboarding';
 import { Welcome } from './features/Welcome';
@@ -84,13 +85,38 @@ function keyFor(r: Route, depth: number) {
   return `${r.name}-${depth}`;
 }
 
+/**
+ * The document scrolls (not an inner box), so on navigation we reset or restore
+ * the window scroll position: new screens start at the top, going back returns
+ * to where you were.
+ */
+function useScrollRestore(key: string, direction: Direction) {
+  const positions = useRef(new Map<string, number>());
+  const current = useRef(key);
+  useEffect(() => {
+    const onScroll = () => positions.current.set(current.current, window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  useLayoutEffect(() => {
+    current.current = key;
+    const y = direction === 'pop' ? positions.current.get(key) ?? 0 : 0;
+    window.scrollTo(0, y);
+  }, [key, direction]);
+}
+
 function Shell() {
   const { route, direction, depth } = useApp();
   usePrefetchScreens();
+  const key = keyFor(route, depth);
+  useScrollRestore(key, direction);
+  // never reload for an update while a daily attempt is being prepared, played or shown
+  useEffect(() => { setUpdateBusy(route.name === 'prep' || route.name === 'play' || route.name === 'results' || route.name === 'auth'); }, [route.name]);
   return (
     <div className="app-frame">
-      <AnimatePresence initial={false} custom={direction}>
-        <m.div key={keyFor(route, depth)} className="screen-host" custom={direction}
+      {/* popLayout: the outgoing screen is lifted out of the flow while it animates away */}
+      <AnimatePresence initial={false} custom={direction} mode="popLayout">
+        <m.div key={key} className="screen-host" custom={direction}
           variants={variants} initial="initial" animate="animate" exit="exit">
           <Suspense fallback={<div className="screen screen--loading" />}>{screenFor(route)}</Suspense>
         </m.div>

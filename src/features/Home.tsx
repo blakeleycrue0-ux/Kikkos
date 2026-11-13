@@ -1,4 +1,5 @@
 import { m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, type BoardRow, type Group } from '../backend';
@@ -25,6 +26,7 @@ const stagger = (i: number) => ({
 export function Home() {
   const { go, setTab, session, today, todayError, refreshToday } = useApp();
   const stats = useStats();
+  useChrome(CHROME.cream);
   const now = useNow(15_000, today?.serverOffsetMs ?? 0);
   const [me, setMe] = useState<BoardRow | null>(null);
   const [groups, setGroups] = useState<Group[] | null>(null);

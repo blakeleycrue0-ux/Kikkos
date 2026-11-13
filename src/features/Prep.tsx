@@ -1,4 +1,5 @@
 import { m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, BackendError } from '../backend';
@@ -26,6 +27,7 @@ export function Prep() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const played = !!today?.attempt;
+  useChrome(CHROME.blue);
 
   const start = async () => {
     setBusy(true); setError('');

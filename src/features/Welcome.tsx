@@ -1,4 +1,5 @@
 import { m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useApp } from '../app/store';
 import { backend } from '../backend';
 import { Key } from '../components/Key';
@@ -8,6 +9,7 @@ import { fx } from '../lib/feedback';
 
 export function Welcome() {
   const { go, finishOnboarding } = useApp();
+  useChrome(CHROME.blue, CHROME.cream);
   return (
     <div className="screen welcome on-dark">
       <m.header className="welcome__top" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>

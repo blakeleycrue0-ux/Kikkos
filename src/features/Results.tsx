@@ -1,4 +1,5 @@
 import { AnimatePresence, m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useState } from 'react';
 import { useApp } from '../app/store';
 import type { Route } from '../app/routes';
@@ -20,6 +21,7 @@ export function Results({ route }: { route: ResultsRoute }) {
 
 function DailyResults({ route }: { route: Extract<ResultsRoute, { mode: 'daily' }> }) {
   const { go, setTab, today, toast, refreshToday } = useApp();
+  useChrome(CHROME.blue);
   const [counted, setCounted] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const r = route.result;
@@ -130,6 +132,7 @@ function DailyResults({ route }: { route: Extract<ResultsRoute, { mode: 'daily' 
 
 function PracticeResults({ route }: { route: Extract<ResultsRoute, { mode: 'practice' }> }) {
   const { go, setTab } = useApp();
+  useChrome(CHROME.cream);
   const again = () => go({ name: 'play', mode: 'practice', seed: crypto.randomUUID?.() ?? String(Math.random()) }, { replace: true, direction: 'up' });
   return (
     <div className="screen results results--practice">

@@ -1,4 +1,5 @@
 import { AnimatePresence, m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/store';
 import type { Route } from '../app/routes';
@@ -22,6 +23,7 @@ const SWAP_MS = 100;
 export function Play({ route }: { route: PlayRoute }) {
   const { go, back, today, refreshToday } = useApp();
   const daily = route.mode === 'daily';
+  useChrome(CHROME.ink);
   const seed = daily ? route.attempt.seed : route.seed;
 
   // ── clock: anchored to the server start time for official attempts ──
@@ -155,7 +157,7 @@ export function Play({ route }: { route: PlayRoute }) {
   const urgent = phase === 'live' && secs <= 5;
 
   return (
-    <div className="screen play on-dark on-ink">
+    <div className="screen screen--fit play on-dark on-ink">
       <header className="play__hud">
         <div className="play__score">
           <span className="eyebrow">Score</span>

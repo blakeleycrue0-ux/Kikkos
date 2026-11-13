@@ -1,4 +1,5 @@
 import { AnimatePresence, m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, type BoardRow, type HistoryItem, type WorldBoard } from '../backend';
@@ -22,6 +23,7 @@ export function World() {
   const day = today?.day ?? dayKey();
   const target = seg === 'yesterday' ? shiftDay(day, -1) : day;
   const needsAuth = backend.mode === 'online' && !session;
+  useChrome(CHROME.blue, CHROME.cream);
 
   useEffect(() => {
     if (seg === 'mine' || needsAuth) return;

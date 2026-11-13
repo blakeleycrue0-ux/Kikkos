@@ -1,4 +1,5 @@
 import { m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, type Group } from '../backend';
@@ -14,6 +15,7 @@ export function Friends() {
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [error, setError] = useState(false);
   const [sheet, setSheet] = useState<'create' | 'join' | null>(null);
+  useChrome(CHROME.cream);
   const [pending, setPending] = useState('');
   useEffect(() => {
     const code = loadPref<string>('pending-join', '');

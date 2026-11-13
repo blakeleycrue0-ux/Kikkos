@@ -1,4 +1,5 @@
 import { m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, USERNAME_RE, type Group } from '../backend';
@@ -21,6 +22,7 @@ export function Profile() {
   const [editing, setEditing] = useState(false);
   const [rules, setRules] = useState(false);
   const p = session?.profile;
+  useChrome(CHROME.cream);
 
   useEffect(() => { if (p) backend.myGroups().then(setGroups).catch(() => setGroups(null)); }, [p]);
 
@@ -100,7 +102,7 @@ export function Profile() {
             </button>
           )}
         </section>
-        <p className="small muted profile__foot">KIKKO · {backend.mode === 'online' ? 'Scores verified by the server' : 'Demo: online play isn’t switched on yet, nothing leaves this device'}</p>
+        <p className="small muted profile__foot">KIKKO · build {__BUILD_ID__} · {backend.mode === 'online' ? 'Scores verified by the server' : 'Demo: online play isn’t switched on yet, nothing leaves this device'}</p>
       </div>
 
       <Sheet open={editing} onClose={() => setEditing(false)} label="Edit name"><EditName onDone={() => setEditing(false)} /></Sheet>

@@ -1,4 +1,5 @@
 import { m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useApp } from '../app/store';
 import { Icon } from '../components/Icon';
 import { Key, Press } from '../components/Key';
@@ -22,6 +23,7 @@ const LAB = [
 export function Arcade() {
   const { go, back } = useApp();
   const best = load<number>('practice-best', 0);
+  useChrome(CHROME.cream);
   const practice = () => go({ name: 'play', mode: 'practice', seed: crypto.randomUUID?.() ?? String(Math.random()) }, { direction: 'up' });
   return (
     <div className="screen arcade">

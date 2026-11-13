@@ -1,4 +1,5 @@
 import { AnimatePresence, m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, USERNAME_RE } from '../backend';
@@ -14,6 +15,7 @@ const suggest = () => `player_${Math.floor(1000 + Math.random() * 9000)}`;
 export function Auth({ reason }: { reason?: 'play' | 'groups' | 'signin' }) {
   const { go, back, depth, session, refreshSession, refreshToday, toast } = useApp();
   const demo = backend.mode === 'demo';
+  useChrome(CHROME.cream);
   const [step, setStep] = useState<Step>(() => (demo ? 'name' : session && !session.profile ? 'name' : 'choose'));
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');

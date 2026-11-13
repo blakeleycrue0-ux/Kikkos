@@ -1,4 +1,5 @@
 import { AnimatePresence, m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useState } from 'react';
 import { useApp } from '../app/store';
 import { Icon } from '../components/Icon';
@@ -7,17 +8,17 @@ import { DiscoverArt, FriendsArt, WorldArt } from '../illustrations/Onboarding';
 
 const PAGES = [
   {
-    bg: 'var(--blue)', dark: true, art: <DiscoverArt />,
+    bg: 'var(--blue)', hex: CHROME.blue, dark: true, art: <DiscoverArt />,
     title: <>Short games.<br /><span className="hl-lime">New every day.</span></>,
     sub: 'A different 30-second challenge each day. Quick to learn, hard to master.',
   },
   {
-    bg: 'var(--ink)', dark: true, art: <WorldArt />,
+    bg: 'var(--ink)', hex: CHROME.ink, dark: true, art: <WorldArt />,
     title: <>No squad<br /><span className="hl-lime">needed.</span></>,
     sub: 'Everyone in the world gets the same challenge. One shot. Climb the ranking solo.',
   },
   {
-    bg: 'var(--cream)', dark: false, art: <FriendsArt />,
+    bg: 'var(--cream)', hex: CHROME.cream, dark: false, art: <FriendsArt />,
     title: <>Bring your<br /><span className="hl-coral">rivals.</span></>,
     sub: 'Optional private groups. Your daily score counts there too.',
   },
@@ -28,6 +29,7 @@ export function Onboarding() {
   const [[page, dir], setPage] = useState<[number, number]>([0, 1]);
   const p = PAGES[page];
   const last = page === PAGES.length - 1;
+  useChrome(p.hex);
 
   const to = (n: number) => { if (n >= 0 && n < PAGES.length) setPage([n, n > page ? 1 : -1]); };
   const done = () => { finishOnboarding(); go({ name: 'auth' }, { reset: true }); };

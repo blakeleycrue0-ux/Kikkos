@@ -8,7 +8,23 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
     if (!open) return;
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
+    // iOS: keep the sheet above the keyboard. visualViewport shrinks when it opens.
+    const vv = window.visualViewport;
+    const root = document.getElementById('overlay-root');
+    const fit = () => {
+      if (!vv || !root) return;
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      root.style.setProperty('--kb', `${Math.round(kb)}px`);
+    };
+    fit();
+    vv?.addEventListener('resize', fit);
+    vv?.addEventListener('scroll', fit);
+    return () => {
+      window.removeEventListener('keydown', k);
+      vv?.removeEventListener('resize', fit);
+      vv?.removeEventListener('scroll', fit);
+      root?.style.removeProperty('--kb');
+    };
   }, [open, onClose]);
   const root = typeof document !== 'undefined' ? document.getElementById('overlay-root') ?? document.body : null;
   if (!root) return null;

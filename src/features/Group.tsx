@@ -1,4 +1,5 @@
 import { m } from 'motion/react';
+import { CHROME, useChrome } from '../components/chrome';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import { backend, type Group as G, type GroupBoardRow } from '../backend';
@@ -21,6 +22,7 @@ export function Group({ id, fresh }: { id: string; fresh?: boolean }) {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [error, setError] = useState(false);
   const day = today?.day ?? dayKey();
+  useChrome(CHROME.coral, CHROME.cream);
 
   useEffect(() => {
     backend.myGroups().then((gs) => setGroup(gs.find((g) => g.id === id) ?? null)).catch(() => setError(true));

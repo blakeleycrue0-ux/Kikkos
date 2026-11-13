@@ -1,4 +1,5 @@
 import { useApp } from '../app/store';
+import { CHROME, useChrome } from '../components/chrome';
 import { Icon } from '../components/Icon';
 import { Key, Press } from '../components/Key';
 import { FriendsArt } from '../illustrations/Onboarding';
@@ -7,6 +8,7 @@ import { save } from '../lib/prefs';
 
 export function Join({ code }: { code: string }) {
   const { session, go, toast, finishOnboarding } = useApp();
+  useChrome(CHROME.cream);
   const home = () => { finishOnboarding(); history.replaceState(null, '', '/'); go({ name: 'tabs', tab: 'home' }, { reset: true }); };
   return (
     <div className="screen join">
