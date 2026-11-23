@@ -226,3 +226,19 @@ test('partidos: crear, listar, consultar anteriores y partido de prueba identifi
   ctl.close();
   await s.close();
 });
+
+test('fondo personalizado: subir, servir, quitar; solo con clave y solo imágenes de mapa de bits', async () => {
+  const s = await boot();
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  assert.equal((await fetch(`${s.base}/assets/background`)).status, 404);
+  assert.equal((await fetch(`${s.base}/api/upload/background`, { method: 'POST', body: png })).status, 401);
+  assert.equal((await fetch(`${s.base}/api/upload/background?k=${s.key}`, { method: 'POST', body: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>') })).status, 415);
+  assert.equal((await fetch(`${s.base}/api/upload/background?k=${s.key}`, { method: 'POST', body: png })).status, 200);
+  const r = await fetch(`${s.base}/assets/background`);
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('content-type'), 'image/png');
+  assert.equal((await (await fetch(`${s.base}/api/admin?k=${s.key}`)).json()).hasBackground, true);
+  assert.equal((await fetch(`${s.base}/api/background/remove?k=${s.key}`, { method: 'POST' })).status, 200);
+  assert.equal((await fetch(`${s.base}/assets/background`)).status, 404);
+  await s.close();
+});

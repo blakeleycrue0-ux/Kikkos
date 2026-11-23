@@ -537,7 +537,7 @@ function renderAir() {
     ['Automática (sigue el modo y formato del mando)', `${base}/live`, 'según formato'],
   ];
   const sec = (v) => (v / 1000).toString();
-  const sig = JSON.stringify([d, c.cameraDelayMs, a.port]);
+  const sig = JSON.stringify([d, c.cameraDelayMs, a.port, a.hasBackground]);
   if (root.dataset.sig === sig && root.dataset.built) return;
   root.dataset.sig = sig;
   root.dataset.built = '1';
@@ -569,6 +569,14 @@ function renderAir() {
       <div><label class="f">Duración del aviso (s)</label><input type="number" min="2" max="20" inputmode="numeric" data-set="display.noticeSeconds" data-type="num" value="${d.noticeSeconds}"></div>
       <div><label class="f">Eventos recientes visibles (0–6)</label><input type="number" min="1" max="6" inputmode="numeric" data-set="display.recentEvents" data-type="num" value="${d.recentEvents}"></div>
       ${Object.keys(d.noticeTypes).map((k) => `<label class="switch"><span>Aviso de ${esc(TYPE_LABEL[k].toLowerCase())}</span><input type="checkbox" data-set="display.noticeTypes.${k}" data-type="bool" ${d.noticeTypes[k] ? 'checked' : ''}></label>`).join('')}
+    </div>
+
+    <h2>Pantalla sin cámara</h2>
+    <div class="card fields">
+      <label class="switch"><span>Escudos en silueta blanca (pierde los detalles)</span><input type="checkbox" data-set="display.whiteLogos" data-type="bool" ${d.whiteLogos ? 'checked' : ''}></label>
+      <div class="logo-pick"><label class="btn sm" style="cursor:pointer">Subir imagen de fondo<input type="file" accept="image/png,image/jpeg,image/webp" hidden data-bg></label>
+        ${a.hasBackground ? '<button class="btn sm ghost" data-bgremove>Quitar fondo</button><span class="muted small">Fondo personalizado activo</span>' : '<span class="muted small">Ahora: fondo lila provisional</span>'}</div>
+      <div class="muted small">Sube el fondo como PNG, JPG o WEBP (si es un PDF, expórtalo a imagen). Se aplica a /studio/h, /studio/v y /live sin cámara. Los escudos se suben en Ajustes → Partido actual.</div>
     </div>
 
     <h2>Fuentes para OBS (Navegador)</h2>
@@ -618,6 +626,23 @@ document.addEventListener('click', (e) => {
     act('settings.update', { patch: { display: { delays: { scoreMs: ms, clockMs: ms } } } }, 'Retrasos igualados');
     $('#tab-air').dataset.sig = '';
   }
+});
+document.addEventListener('change', async (e) => {
+  const inp = e.target.closest('input[data-bg]');
+  if (!inp || !inp.files[0]) return;
+  try {
+    const r = await api('/api/upload/background', { method: 'POST', body: inp.files[0] });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'No se pudo subir');
+    toast('Fondo actualizado');
+    const f = $('#pvf'); if (f) f.src = '/live?guides=1';
+  } catch (err) { toast(err.message, { bad: true }); }
+});
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest('[data-bgremove]')) return;
+  await api('/api/background/remove', { method: 'POST' });
+  toast('Fondo quitado');
+  const f = $('#pvf'); if (f) f.src = '/live?guides=1';
 });
 document.addEventListener('input', (e) => {
   const r = e.target.closest('input[type=range][data-live]');

@@ -81,6 +81,14 @@ export class App extends EventEmitter {
     return m;
   }
 
+  backgroundFile() {
+    for (const ext of ['png', 'jpg', 'webp']) {
+      const f = path.join(this.store.assetsDir, `background.${ext}`);
+      if (fs.existsSync(f)) return f;
+    }
+    return null;
+  }
+
   // -------------------------------------------------------------------- estado
   publicState(now = Date.now()) {
     return {
@@ -142,6 +150,7 @@ export class App extends EventEmitter {
       ffmpeg: this.ffmpeg,
       clips: this.clips.list(),
       clipsDir: this.clips.clipsDir(),
+      hasBackground: !!this.backgroundFile(),
       matches: this.store.listMatches().map(matchSummary).sort((a, b) => b.updatedAt - a.updatedAt),
       lan: this.lanAddresses(),
       port: this.port,
@@ -340,6 +349,7 @@ export class App extends EventEmitter {
         if ('clockMs' in d.delays) s.display.delays.clockMs = num(d.delays.clockMs, 0, 60000, 0);
       }
       if ('noticeSeconds' in d) s.display.noticeSeconds = num(d.noticeSeconds, 2, 20, 6);
+      if ('whiteLogos' in d) s.display.whiteLogos = !!d.whiteLogos;
       if ('recentEvents' in d) s.display.recentEvents = num(d.recentEvents, 1, 6, 3);
       if (isObj(d.noticeTypes)) for (const k of Object.keys(s.display.noticeTypes)) if (k in d.noticeTypes) s.display.noticeTypes[k] = !!d.noticeTypes[k];
     }

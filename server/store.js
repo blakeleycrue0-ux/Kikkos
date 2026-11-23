@@ -21,6 +21,7 @@ export const DEFAULT_SETTINGS = () => ({
     noticeSeconds: 6,
     noticeTypes: { goal: true, yellow: true, red: true, sub: true, foul: false, play: false },
     recentEvents: 3,
+    whiteLogos: false, // opcional: convierte los escudos en silueta blanca (mejor subir escudos ya en blanco)
   },
   clips: {
     enabled: true,

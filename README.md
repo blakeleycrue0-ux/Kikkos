@@ -28,6 +28,9 @@ escanea el **QR** con el móvil. Entra directamente (la clave viaja en el QR y s
 *Ajustes → Partido actual* (mientras falten se usan las iniciales). Hay un **partido de prueba** identificado ("PRUEBA") para ensayar
 goles, tarjetas, descanso y correcciones: *Ajustes → Nuevo partido → Crear partido de prueba*.
 
+### Fondo y escudos de la pantalla sin cámara
+En **Emisión → Pantalla sin cámara** sube la imagen de fondo (PNG, JPG o WEBP; si es un PDF, expórtalo a imagen). Mientras no subas ninguna se usa un fondo lila provisional. Los escudos se suben en *Ajustes → Partido actual* (mejor PNG con transparencia y ya en blanco).
+
 ## 4. Durante el partido (pestaña Directo)
 
 Iniciar 1ª parte → Descanso → Iniciar 2ª parte (arranca en el minuto de la duración configurada) → Finalizar. Botones por equipo: Gol, Falta, Amarilla,

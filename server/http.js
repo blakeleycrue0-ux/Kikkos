@@ -95,6 +95,12 @@ function sniffImage(b) {
   return null;
 }
 
+function clearBackground(app) {
+  for (const ext of ['png', 'jpg', 'webp']) {
+    try { fs.unlinkSync(path.join(app.store.assetsDir, `background.${ext}`)); } catch { /* */ }
+  }
+}
+
 export function createRequestHandler(app) {
   const authed = (req, url) => {
     const c = parseCookies(req.headers.cookie);
@@ -146,6 +152,21 @@ export function createRequestHandler(app) {
           return send(res, 200, { ok: true, url: `/assets/logos/${name}` });
         }
 
+        if (p === '/api/upload/background' && req.method === 'POST') {
+          const buf = await readBody(req, 15 * 1024 * 1024);
+          const kind = sniffImage(buf);
+          if (!kind || kind === 'svg') return send(res, 415, { ok: false, error: 'Usa una imagen PNG, JPG o WEBP (si tienes un PDF, expórtalo a imagen)' });
+          clearBackground(app);
+          fs.writeFileSync(path.join(app.store.assetsDir, `background.${kind}`), buf);
+          app.scheduleAdmin();
+          return send(res, 200, { ok: true });
+        }
+        if (p === '/api/background/remove' && req.method === 'POST') {
+          clearBackground(app);
+          app.scheduleAdmin();
+          return send(res, 200, { ok: true });
+        }
+
         let m;
         if ((m = /^\/api\/matches\/([a-z0-9]+)\/export$/i.exec(p))) {
           const match = app.store.loadMatch(m[1]);
@@ -172,6 +193,11 @@ export function createRequestHandler(app) {
         return serveFile(req, res, path.join(app.store.logosDir, name), {
           extra: { 'Cache-Control': 'public, max-age=3600', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox" },
         });
+      }
+      if (p === '/assets/background') {
+        const f = app.backgroundFile();
+        if (!f) return send(res, 404, 'Sin fondo');
+        return serveFile(req, res, f, { extra: { 'Cache-Control': 'no-cache', 'Content-Security-Policy': "default-src 'none'; sandbox" } });
       }
       if (p === '/sample.mp4') return serveFile(req, res, path.join(app.store.sampleDir, 'muestra.mp4'), { extra: { 'Cache-Control': 'no-store' } });
 

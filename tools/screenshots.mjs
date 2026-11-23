@@ -18,21 +18,35 @@ const srv = await startServer({ port: 0, dataDir, quiet: true });
 const base = `http://127.0.0.1:${srv.port}`;
 const ctl = await new TestClient(base, { role: 'control', key: srv.app.settings.key }).connect();
 
-// Escudo de ejemplo (SVG sencillo) para el rival; el club se queda con iniciales.
-const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 4 92 18v34c0 24-18 38-42 46C26 90 8 76 8 52V18z" fill="#fff"/><path d="M50 12 84 23v29c0 19-14 31-34 38C30 83 16 71 16 52V23z" fill="#0a0a0d"/><text x="50" y="62" font-family="Arial" font-weight="700" font-size="34" text-anchor="middle" fill="#fff">CE</text></svg>`);
-const up = await (await fetch(`${base}/api/upload/logo?k=${srv.app.settings.key}`, { method: 'POST', body: svg })).json();
+// Escudos de ejemplo (SVG en color: con «escudos en blanco» se ven blancos).
+const shield = (txt, c) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 110"><path d="M50 4 92 18v34c0 24-18 38-42 46C26 90 8 76 8 52V18z" fill="${c}"/><path d="M50 14 82 25v27c0 18-13 29-32 36C31 81 18 70 18 52V25z" fill="#fff"/><text x="50" y="62" font-family="Arial" font-weight="700" font-size="30" text-anchor="middle" fill="${c}">${txt}</text></svg>`);
+const key = srv.app.settings.key;
+const upl = async (b) => (await (await fetch(`${base}/api/upload/logo?k=${key}`, { method: 'POST', body: b })).json()).url;
+const clubLogo = process.env.NO_CLUB_LOGO ? null : await upl(shield('SP', '#6d4fd0'));
+const rivalLogo = await upl(shield('CE', '#1b6e46'));
+if (clubLogo) await ctl.cmd('settings.update', { patch: { club: { logo: clubLogo } } });
 
 await ctl.cmd('match.create', { rival: { name: 'CE Esporles', short: 'ESP', color: '#FFFFFF' }, category: 'Cadete', durations: [40, 40], date: '2026-11-22', ffspSide: 'home' });
-await ctl.cmd('match.update', { patch: { away: { logo: up.url } } });
+await ctl.cmd('match.update', { patch: { away: { logo: rivalLogo } } });
 await ctl.cmd('clock.start1');
-await ctl.cmd('clock.set', { ms: 23 * 60000 + 14000 });
-const add = (a, c) => ctl.cmd('event.add', a, undefined).then(() => new Promise((r) => setTimeout(r, 1300)));
+await ctl.cmd('clock.set', { ms: 63 * 60000 + 14000 });
+await ctl.cmd('clock.halftime');
+await ctl.cmd('clock.start2');
+await ctl.cmd('clock.set', { ms: 63 * 60000 + 14000 });
+const add = (a) => ctl.cmd('event.add', a, undefined).then(() => new Promise((r) => setTimeout(r, 1250)));
 await add({ type: 'goal', team: 'home', player: 'Marta Ferrer', number: '9', matchMs: 6 * 60000 });
 await add({ type: 'yellow', team: 'away', player: 'Laia', number: '4', matchMs: 11 * 60000 });
 await add({ type: 'foul', team: 'away', matchMs: 15 * 60000 });
 await add({ type: 'goal', team: 'away', player: 'Carla Ramis', number: '7', matchMs: 19 * 60000 });
-await add({ type: 'sub', team: 'home', player: 'Aina', playerIn: 'Júlia', matchMs: 21 * 60000 });
-await add({ type: 'goal', team: 'home', player: 'Paula Coll', number: '11', matchMs: 22 * 60000 });
+await add({ type: 'sub', team: 'home', player: 'Aina', playerIn: 'Júlia', matchMs: 31 * 60000 });
+await add({ type: 'goal', team: 'home', player: 'Paula Coll', number: '11', matchMs: 38 * 60000 });
+await add({ type: 'play', matchMs: 44 * 60000, note: 'Parada espectacular de la portera tras un remate desde fuera del área' });
+await add({ type: 'red', team: 'away', player: 'María del Carmen Fernández de la Vega', number: '14', note: 'Doble amarilla por protestar al árbitro', matchMs: 52 * 60000 });
+await add({ type: 'foul', team: 'home', matchMs: 55 * 60000 });
+await add({ type: 'yellow', team: 'home', player: 'Joana', matchMs: 58 * 60000 });
+await add({ type: 'goal', team: 'home', matchMs: 60 * 60000 });
+await add({ type: 'sub', team: 'away', player: 'Núria', playerIn: 'Berta', matchMs: 61 * 60000 });
+await add({ type: 'goal', team: 'home', player: 'Sofía Martínez-Calafat', number: '10', matchMs: 63 * 60000 });
 await new Promise((r) => setTimeout(r, 400));
 
 const browser = await chromium.launch();
@@ -41,7 +55,8 @@ const shots = [
   ['studio-v', '/studio/v', 1080, 1920],
   ['overlay-h', '/overlay/h?guides=0', 1920, 1080],
   ['overlay-v', '/overlay/v?guides=1', 1080, 1920],
-  ['studio-v-phone', '/studio/v', 390, 844],
+  ['studio-v-phone', '/studio/v', 390, 693],
+  ['studio-h-small', '/studio/h', 640, 360],
   ['overlay-h-small', '/overlay/h', 1280, 720],
 ];
 for (const [name, url, w, h] of shots) {

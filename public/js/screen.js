@@ -92,19 +92,26 @@ function renderCameraV(m, d, score, events) {
   <div class="cv-recent">${recent.map((e) => rowHtml(e, m, false)).join('')}</div>`;
 }
 
+function tlRow(e, match) {
+  const { team, text } = eventDetail(e, match);
+  const who = [e.number, e.player].filter(Boolean).join(' ');
+  const main = e.type === 'sub' ? (text || TYPE_LABEL.sub) : (who || `${TYPE_LABEL[e.type]}${team ? ' ' + team.short : ''}`);
+  const sub = e.type === 'sub' || !who ? (e.note || '') : `${TYPE_LABEL[e.type]}${team ? ' · ' + team.short : ''}${e.note ? ' · ' + e.note : ''}`;
+  return `<div class="tl-row ${e.voided ? 'voided' : ''} t-${e.type}" data-id="${esc(e.id)}">
+    <span class="dot"></span><span class="tl-min tnum">${esc(e.minute)}</span><span class="tl-ico">${icon(e.type)}</span>
+    <span class="tl-txt"><b>${esc(main)}</b>${sub || e.voided ? `<small>${esc(sub)}${e.voided ? (sub ? ' · ' : '') + 'anulado' : ''}</small>` : ''}</span></div>`;
+}
+
 function renderStudio(m, d, score, events, layout) {
-  const meta = [m.category, m.date].filter(Boolean).join(' · ');
-  const rows = events.slice(0, 40).map((e) => rowHtml(e, m, false)).join('') || '<div class="empty">Todavía no hay eventos</div>';
+  const rows = events.slice(0, 40).map((e) => tlRow(e, m)).join('') || '<div class="empty">Todavía no hay eventos</div>';
+  const side = (t, cls, n) => `<div class="st-t ${cls}" style="--tc:${esc(t.color)}">${badge(t, 'b')}<b class="num ${n}">${score[cls]}</b></div>`;
   return `<div class="safe studio st-${layout}">
-    <div class="st-meta"><span>${esc(m.name)}</span><span>${esc(meta)}</span>${testTag(m)}</div>
-    <div class="st-board">
-      <div class="st-team home" style="--tc:${esc(m.home.color)}">${badge(m.home, 'b')}<span class="nm">${esc(layout === 'h' ? m.home.name : m.home.short)}</span></div>
-      ${scoreHtml(score)}
-      <div class="st-team away" style="--tc:${esc(m.away.color)}">${badge(m.away, 'b')}<span class="nm">${esc(layout === 'h' ? m.away.name : m.away.short)}</span></div>
+    <div class="st-main">
+      <div class="st-live"><span>EN DIRECTO</span>${testTag(m)}</div>
+      <div class="st-teams">${side(m.home, 'home', 'sc sc-h')}${side(m.away, 'away', 'sc sc-a')}</div>
+      <div class="st-clock"><b class="cl tnum">00:00</b><span class="ph"></span><em class="ad"></em></div>
     </div>
-    ${clockHtml()}
-    <div class="st-line"><span>Línea del tiempo</span></div>
-    <div class="timeline">${rows}</div>
+    <div class="timeline"><div class="tl-line"></div>${rows}</div>
   </div>`;
 }
 
@@ -183,14 +190,16 @@ function tick() {
 
   const key = JSON.stringify([mode, layout, margins, guides, m.home, m.away, m.score, m.name, m.category, m.date, m.isTest,
     events.map((e) => [e.id, e.type, e.team, e.minute, e.voided, e.player, e.number, e.playerIn, e.note]),
-    display.recentEvents]);
+    display.recentEvents, display.whiteLogos]);
 
   if (cur.mode !== mode || cur.layout !== layout) {
     cur = { mode, layout };
     document.body.className = `mode-${mode} layout-${layout}`;
+    sig = '';
     fit(layout);
   }
 
+  document.body.classList.toggle('white-logos', !!display.whiteLogos);
   if (key !== sig) {
     sig = key;
     stage.style.setProperty('--mt', `${margins.top}px`);
