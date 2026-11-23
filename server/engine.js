@@ -172,6 +172,20 @@ export function execMatchCommand(m, name, a, ctx) {
       setPhase(m, now, 'finished', cur, false);
       audit(m, now, name, 'Final del partido');
       break;
+    case 'clock.reopen': {
+      // Deshace un "Finalizar" accidental: el reloj continúa donde se paró.
+      if (c.phase !== 'finished') { changed = false; break; }
+      const phase = c.baseMs >= m.durations[0] * 60000 ? 'second' : 'first';
+      setPhase(m, now, phase, c.baseMs, true);
+      audit(m, now, name, 'Partido reabierto');
+      break;
+    }
+    case 'clock.reset':
+      // Vuelve a la previa con el reloj a cero (los eventos se conservan).
+      setPhase(m, now, 'pre', 0, false);
+      c.extra = { 1: 0, 2: 0 };
+      audit(m, now, name, 'Reloj reiniciado a cero');
+      break;
     case 'clock.pause':
       if (!c.running) { changed = false; break; }
       if (c.phase !== 'first' && c.phase !== 'second') bad('bad_phase', 'No hay reloj en marcha');

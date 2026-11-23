@@ -256,7 +256,8 @@ function renderLive() {
   else if (ph === 'first') phase = btn('confirm.halftime', 'Descanso', 'primary') + btn('confirm.finish', 'Finalizar partido', 'ghost');
   else if (ph === 'halftime') phase = btn('clock.start2', `Iniciar segunda parte (min ${mt.durations[0]})`, 'primary') + btn('confirm.finish', 'Finalizar partido', 'ghost');
   else if (ph === 'second') phase = btn('confirm.finish', 'Finalizar partido', 'primary');
-  else phase = '<div class="card muted" style="text-align:center">Partido finalizado. Los eventos se pueden seguir corrigiendo.</div>';
+  else phase = '<div class="card muted" style="text-align:center">Partido finalizado. Los eventos se pueden seguir corrigiendo.</div>' + btn('clock.reopen', 'Reabrir partido (continuar)', 'primary');
+  if (ph !== 'pre') phase += btn('confirm.reset', 'Reiniciar reloj a cero…', 'ghost');
   setPart('livePhase', `<div class="phase-actions">${phase}</div>`, ph + mt.durations.join());
 
   const running = mt.clock.running;
@@ -346,6 +347,8 @@ document.addEventListener('click', (e) => {
   const lock = () => { a.classList.add('busy'); setTimeout(() => a.classList.remove('busy'), 700); };
   switch (k) {
     case 'clock.start1': lock(); act(k, {}, 'Primera parte iniciada'); break;
+    case 'clock.reopen': lock(); act(k, {}, 'Partido reabierto'); break;
+    case 'confirm.reset': confirmSheet('¿Reiniciar el reloj a cero?', 'El partido vuelve a la previa con el reloj a 0:00. Los eventos registrados se conservan (puedes borrarlos desde Eventos).', 'Sí, reiniciar', () => act('clock.reset', {}, 'Reloj reiniciado'), true); break;
     case 'clock.start2': lock(); act(k, {}, 'Segunda parte iniciada'); break;
     case 'clock.pause': lock(); act(k, {}, 'Reloj detenido'); break;
     case 'clock.resume': lock(); act(k, {}, 'Reloj reanudado'); break;

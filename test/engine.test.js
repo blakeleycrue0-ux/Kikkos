@@ -141,3 +141,25 @@ test('evento registrado sin conexión conserva su instante real y su minuto', ()
   const far = ex(m, 'event.add', { type: 'foul', team: 'home', at: T0 - 99_999_999 }, arrivedAt, 'mov');
   assert.equal(m.events.find((x) => x.id === far.result.eventId).realAt, arrivedAt, 'una marca absurda se ignora');
 });
+
+test('reabrir un partido finalizado por error y reiniciar el reloj', () => {
+  const m = mk();
+  ex(m, 'clock.start1', {}, T0);
+  ex(m, 'clock.finish', {}, T0 + 5 * 60_000);
+  assert.equal(m.clock.phase, 'finished');
+  ex(m, 'clock.reopen', {}, T0 + 6 * 60_000);
+  assert.equal(m.clock.phase, 'first');
+  assert.equal(clockMs(m.clock, T0 + 6 * 60_000), 5 * 60_000, 'continúa donde se paró');
+  ex(m, 'clock.halftime', {}, T0 + 30 * 60_000);
+  ex(m, 'clock.start2', {}, T0 + 40 * 60_000);
+  ex(m, 'clock.finish', {}, T0 + 50 * 60_000);
+  ex(m, 'clock.reopen', {}, T0 + 51 * 60_000);
+  assert.equal(m.clock.phase, 'second');
+  ex(m, 'event.add', { type: 'goal', team: 'home' }, T0 + 52 * 60_000, 'a');
+  ex(m, 'clock.reset', {}, T0 + 53 * 60_000);
+  assert.equal(m.clock.phase, 'pre');
+  assert.equal(clockMs(m.clock, T0 + 99 * 60_000), 0);
+  assert.equal(m.events.length, 1);
+  ex(m, 'clock.start1', {}, T0 + 60 * 60_000);
+  assert.equal(m.clock.phase, 'first');
+});
