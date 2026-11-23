@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>FFSP · Prueba con vídeo de muestra</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #050507; overflow: hidden; }
+    #stage { position: absolute; transform-origin: 0 0; background: #000; overflow: hidden; }
+    video { position: absolute; background: #10151a; object-fit: cover; }
+    iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
+    #msg { position: absolute; inset: 0; display: none; place-items: center; text-align: center; padding: 40px; font: 500 34px/1.5 var(--font-ui); color: #cfcadf; z-index: 2; }
+    #msg b { color: var(--lilac); }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <video id="v" src="/sample.mp4" autoplay muted loop playsinline></video>
+    <div id="msg"><div>No hay vídeo de muestra todavía.<br>Ejecuta <b>npm run sample</b> (o inicia con iniciar.bat) y recarga esta página.</div></div>
+    <iframe id="f" allowtransparency="true"></iframe>
+  </div>
+  <script>
+    const lay = location.pathname.endsWith('/v') ? 'v' : 'h';
+    const [W, H] = lay === 'v' ? [1080, 1920] : [1920, 1080];
+    const st = document.getElementById('stage');
+    const v = document.getElementById('v');
+    st.style.width = W + 'px'; st.style.height = H + 'px';
+    if (lay === 'h') { v.style.cssText += 'left:0;top:0;width:1920px;height:1080px'; }
+    else { v.style.cssText += 'left:0;top:656px;width:1080px;height:607px'; }
+    const q = new URLSearchParams(location.search);
+    document.getElementById('f').src = `/overlay/${lay}${q.get('guides') === '1' ? '?guides=1' : ''}`;
+    v.addEventListener('error', () => { document.getElementById('msg').style.display = 'grid'; });
+    function fit() { const s = Math.min(innerWidth / W, innerHeight / H); st.style.transform = `scale(${s})`; st.style.left = (innerWidth - W * s) / 2 + 'px'; st.style.top = (innerHeight - H * s) / 2 + 'px'; }
+    addEventListener('resize', fit); fit();
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+@font-face { font-family: 'Barlow Condensed'; font-weight: 500; font-display: swap; src: url('/fonts/barlow-condensed-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-display: swap; src: url('/fonts/barlow-condensed-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-display: swap; src: url('/fonts/barlow-condensed-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 400; font-display: swap; src: url('/fonts/inter-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 500; font-display: swap; src: url('/fonts/inter-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 600; font-display: swap; src: url('/fonts/inter-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 700; font-display: swap; src: url('/fonts/inter-latin-700-normal.woff2') format('woff2'); }
+
+:root {
+  --black: #0a0a0d;
+  --ink: #121217;
+  --ink-2: #1a1a21;
+  --ink-3: #24242d;
+  --white: #ffffff;
+  --text: #f4f3f8;
+  --muted: #a9a6ba;
+  --lilac: #c9b8f6;
+  --lilac-strong: #b39cf2;
+  --lilac-deep: #8f78e0;
+  --lilac-wash: rgba(201, 184, 246, 0.12);
+  --line: rgba(255, 255, 255, 0.14);
+  --ok: #8fd6a8;
+  --warn: #f1c46b;
+  --bad: #ff8a8a;
+  --yellow: #f4d03f;
+  --red: #e5484d;
+  --font-ui: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-sport: 'Barlow Condensed', 'Bahnschrift', 'Arial Narrow', 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: var(--font-ui); color: var(--text); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+.tnum { font-variant-numeric: tabular-nums; }

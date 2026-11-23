@@ -1,8 +1,4 @@
-node_modules
-dist
-.env
-.env.local
-*.local
-supabase/.temp
-supabase/.branches
-brand-src/out-*.png
+node_modules/
+data/
+shots/
+*.log

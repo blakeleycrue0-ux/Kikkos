@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>FFSP · Calibración del retraso</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <style>
+    html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
+    body { display: grid; place-items: center; text-align: center; }
+    .t { font: 700 min(26vw, 30vh)/1 var(--font-sport); letter-spacing: .01em; color: #fff; font-variant-numeric: tabular-nums; }
+    .t span { color: var(--lilac); }
+    .s { margin-top: 2vh; font: 500 min(3.2vw, 3.2vh) var(--font-ui); color: var(--muted); letter-spacing: .04em; }
+    body.clean .s { display: none; }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="t" id="t">--:--:--<span>.--</span></div>
+    <div class="s" id="s">Sincronizando con el servidor…</div>
+  </div>
+  <script type="module">
+    import { Link } from '/js/common.js';
+    if (new URLSearchParams(location.search).get('clean') === '1') document.body.classList.add('clean');
+    const link = new Link({ role: 'view' });
+    link.start();
+    const p2 = (n) => String(n).padStart(2, '0');
+    const t = document.getElementById('t');
+    const s = document.getElementById('s');
+    function frame() {
+      if (link.synced) {
+        const d = new Date(link.now());
+        t.innerHTML = `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}<span>.${p2(Math.floor(d.getMilliseconds() / 10))}</span>`;
+        s.textContent = `Hora del servidor · precisión ±${Math.max(1, Math.round((link.rtt || 0) / 2))} ms`;
+      }
+      requestAnimationFrame(frame);
+    }
+    frame();
+  </script>
+</body>
+</html>

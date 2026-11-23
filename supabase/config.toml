@@ -1,6 +1,0 @@
-# Minimal Supabase CLI config for KIKKO. Run `supabase init` to regenerate a full file if needed.
-project_id = "kikko"
-
-[functions.daily]
-# The function authenticates the user itself (auth.getUser), which also works with the new publishable keys.
-verify_jwt = false

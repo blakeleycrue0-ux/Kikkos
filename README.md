@@ -1,61 +1,49 @@
-# KIKKO
+# FFSP · Control de retransmisiones
 
-A mobile-first daily social mini-game. One 30-second official game a day, the same for everyone. Compete with the world solo, add private friend groups if you want, and practice in the Arcade.
+Aplicación local para el Club Femenino Santa Ponsa. Se ejecuta en el portátil (Windows), se controla desde el móvil y genera
+las pantallas que OBS combina con el vídeo de la cámara, además de guardar clips automáticos de las jugadas.
 
-**Stack:** React 18, TypeScript, Vite, Motion (`motion/react`), Supabase (Auth, Postgres + RLS, Edge Functions). Installable PWA.
+- **Mando** (móvil): marcador, reloj, eventos, correcciones, clips y ajustes.
+- **Pantallas de emisión** (OBS, solo lectura): *con cámara* (fondo transparente) y *sin cámara* (negro y lila), en horizontal 16:9 y vertical 9:16.
+- **Clips**: conexión real con OBS (WebSocket 5.x) y recorte con FFmpeg a partir del búfer de repetición.
+- Sin servicios de pago ni cuentas. Todo se guarda en la carpeta `data/` del portátil.
 
-## Run it
+## 1. Arrancar (Windows)
 
-```bash
-npm install
-npm run dev          # http://localhost:5173
-npm run build        # typecheck + production build to dist/
-npm run test:engine  # sanity checks for the shared game engine (Node 22+)
-# end-to-end check against a live Supabase project (needs two confirmed test users):
-# SUPABASE_URL=… SUPABASE_KEY=… QA_EMAIL_1=… QA_EMAIL_2=… QA_PASSWORD=… node --experimental-strip-types scripts/backend-check.mjs
-```
+1. Instala **Node.js LTS** (https://nodejs.org o `winget install OpenJS.NodeJS.LTS`). Es lo único que hay que instalar; FFmpeg se descarga solo con `npm install`.
+2. Copia esta carpeta al portátil y haz doble clic en **`iniciar.bat`**. La primera vez instala los componentes (necesita internet).
+3. Se abre el panel en el portátil y la ventana negra muestra la **clave de control** y las direcciones. Déjala abierta durante el partido.
+4. Una vez, haz doble clic en **`permitir-firewall.bat`** (pide permiso de administrador) para que el móvil pueda conectarse. Ver [red y cortafuegos](docs/RED-Y-FIREWALL.md).
 
-With no environment variables, or while no player sign-in method is enabled in Supabase, KIKKO runs in **Demo mode**: fully playable, but the player, scores and groups stay in this browser's localStorage, scores aren't server-verified, and the World board shows **sample players clearly labelled "Example data"**. The UI says it's in Demo mode on every screen where that matters.
+> Alternativa sin `.bat`: `npm install` y `npm start`. Puerto distinto: `set PORT=3001` antes de arrancar.
 
-## Go online (Supabase)
+## 2. Abrir el mando en el móvil
 
-1. Create a Supabase project and install the CLI.
-2. `supabase link --project-ref <ref>`
-3. `supabase db push` applies `supabase/migrations/20261113000000_kikko_core.sql`.
-4. `supabase functions deploy daily`. The function uses the auto-provided `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` server-side only. Optionally set `ALLOWED_ORIGIN` to your site's origin.
-5. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (the public anon key, **never** the service role key).
-6. Auth: **Quick play** (no email) uses Supabase anonymous sign-ins: Authentication → Sign In / Providers → *Allow anonymous sign-ins*. The app checks this at start-up and switches from Demo to online by itself. Email codes need a custom SMTP sender (Supabase's built-in mailer is heavily rate-limited); after that set `VITE_AUTH_EMAIL=on`. Email one-time codes work once the Email provider is on. In the "Magic Link" email template, include `{{ .Token }}` so users get the 6-digit code. For Apple / Google, enable them in Supabase Auth, add your site URL to the redirect allow-list, then set `VITE_AUTH_PROVIDERS=apple,google`. Buttons only appear for providers listed there.
+Portátil y móvil en la **misma red** (p. ej. la conexión compartida del móvil con 5G). En el portátil: pestaña **Ajustes → Conexión**,
+escanea el **QR** con el móvil. Entra directamente (la clave viaja en el QR y se guarda en el móvil). Si escribes la dirección a mano, pide la clave.
 
-Deploy `dist/` to any static host (Netlify, Vercel, Cloudflare Pages). Serve it over HTTPS so the PWA installs.
+## 3. Preparar el partido
 
-## How fairness works
+*Ajustes → Nuevo partido*: rival, fecha, categoría (sugiere duración, ajustable) y minutos de cada parte. Sube los escudos en
+*Ajustes → Partido actual* (mientras falten se usan las iniciales). Hay un **partido de prueba** identificado ("PRUEBA") para ensayar
+goles, tarjetas, descanso y correcciones: *Ajustes → Nuevo partido → Crear partido de prueba*.
 
-- **One official attempt per account per day** is enforced by a DB unique constraint `(user_id, challenge_id)`.
-- The attempt is created by the `daily` edge function only when the player presses **I'm ready**, with a **server timestamp**. Opening the prep screen doesn't use it.
-- The day's seed lives in `challenge_secrets` (no client access) and is sent only once the attempt has started.
-- The client submits its **tap log**, not a score. The server replays it with the exact same engine (`supabase/functions/_shared/oddspot.ts`, shared by browser and server), recomputes the score, and rejects: out-of-order taps, taps past 30 s, late submissions (more than 10 s grace), clock mismatches and duplicate submits. Inhumanly fast taps (<120 ms) are ignored.
-- Rate limits cover starting, submitting and joining groups. RLS: users read only their own attempts; leaderboards go through `security definer` RPCs; attempts are written only by the service role.
-- If the app reloads mid-game, the attempt resumes on the server clock with the taps already made.
+## 4. Durante el partido (pestaña Directo)
 
-**Known limitations:** one attempt per *account* can't stop one person from making several accounts. Any client-rendered game can in principle be botted after the seed is revealed. Server checks raise the bar but don't make cheating impossible. Ranks are computed live and labelled *provisional* until 00:00 UTC.
+Iniciar 1ª parte → Descanso → Iniciar 2ª parte (arranca en el minuto de la duración configurada) → Finalizar. Botones por equipo: Gol, Falta, Amarilla,
+Roja, Cambio; *Guardar jugada* y *Deshacer último evento*. Toca cualquier evento para añadir jugadora/nota, cambiar el minuto, **anular** un gol (queda
+tachado y no cuenta) o eliminarlo. El marcador se calcula siempre a partir de los eventos, así que nunca queda incoherente.
+Si una pulsación no llega al portátil queda como **pendiente/fallida** en una franja visible y se reenvía sola sin duplicarse.
 
-## Scoring
+## 5. Más guías
 
-+100 per find. Speed bonus up to +50 (full under 0.8 s, zero at 3.8 s). −40 per wrong tap plus a 0.45 s freeze; the score never drops below 0. **Tie-break:** score, then more finds, then fewer wrong taps, then earlier submission.
+- [OBS: fuentes, vertical, clips y búfer](docs/OBS.md)
+- [Calibrar el retraso de la cámara](docs/CALIBRACION.md)
+- [Red, cortafuegos y qué hacer si se pierde la conexión](docs/RED-Y-FIREWALL.md)
+- [Qué está verificado y qué hay que comprobar con vuestro material](docs/VERIFICACION.md)
 
-## Structure
+## Pruebas
 
-```
-src/app            navigation stack, session & today state
-src/backend        Backend interface: demo.ts (local) / online.ts (Supabase)
-src/components     design system: Key (tactile button), Icon, Avatar, Sheet, TabBar, Glyph, Motifs…
-src/illustrations  animated SVG/CSS illustrations (hero stage, onboarding scenes)
-src/features       screens: Welcome, Onboarding, Auth, Home, Prep, Play, Results, World, Friends, Group, Join, Arcade, Profile
-src/styles         tokens + component + screen CSS
-supabase/          migration, edge function, shared engine
-brand-src/         original logo files + extract.py (transparent cutouts, reversed wordmark)
-```
-
-## Brand notes
-
-The official logo is used unmodified. `public/brand/kikko-logo-reversed.png` is the same logo with only the wordmark recoloured to cream, for blue backgrounds. Delete it if you'd rather not use a reversed version. Palette: electric blue `#3777F6` (primary), cream `#FFF8E9`, coral `#FF8C60` and lime `#C9FF67` (accents), charcoal `#29232A`. Type: Outfit (display) + Plus Jakarta Sans (UI), self-hosted so they work offline.
+`npm test` (motor del partido, servidor, clips contra un OBS simulado con FFmpeg y, si hay Playwright, interfaz en navegador real).
+`npm run sample` genera un vídeo de muestra; en el navegador, `/preview/h` y `/preview/v` muestran las pantallas sobre él.
+`node tools/screenshots.mjs carpeta` genera capturas de las distribuciones.
