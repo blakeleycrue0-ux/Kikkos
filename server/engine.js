@@ -90,6 +90,9 @@ export function createMatch(input, settings, now) {
     away: ffspSide === 'home' ? rival : clubTeam,
     durations: cleanDurations(input.durations, [45, 45]),
     clock: { phase: 'pre', running: false, baseMs: 0, startedAt: 0, extra: { 1: 0, 2: 0 } },
+    countdownEndsAt: 0, // cuenta atrás visible en pantalla (previa o descanso)
+    starters: Array.isArray(input.starters) ? input.starters.map(String).slice(0, 40) : (settings.roster || []).filter((p) => p.starter).map((p) => p.id),
+    mvp: '',
     events: [],
     seq: 0,
     audit: [],
@@ -125,6 +128,7 @@ function sortEvents(m) {
 }
 
 function setPhase(m, now, phase, base, running) {
+  m.countdownEndsAt = 0;
   m.clock.phase = phase;
   m.clock.baseMs = base;
   m.clock.running = running;
@@ -186,6 +190,14 @@ export function execMatchCommand(m, name, a, ctx) {
       c.extra = { 1: 0, 2: 0 };
       audit(m, now, name, 'Reloj reiniciado a cero');
       break;
+    case 'clock.countdown': {
+      if (c.phase !== 'pre' && c.phase !== 'halftime') bad('bad_phase', 'La cuenta atrás es para la previa o el descanso');
+      const min = Number(a.minutes);
+      if (!Number.isFinite(min) || min < 0 || min > 90) bad('invalid', 'Minutos no válidos');
+      m.countdownEndsAt = min > 0 ? now + Math.round(min * 60000) : 0;
+      audit(m, now, name, min > 0 ? `Cuenta atrás de ${min} min` : 'Cuenta atrás quitada');
+      break;
+    }
     case 'clock.pause':
       if (!c.running) { changed = false; break; }
       if (c.phase !== 'first' && c.phase !== 'second') bad('bad_phase', 'No hay reloj en marcha');
@@ -258,6 +270,8 @@ export function execMatchCommand(m, name, a, ctx) {
         number: str(a.number, 3),
         playerIn: str(a.playerIn, 60),
         note: str(a.note, 200),
+        rosterId: str(a.rosterId, 20),
+        awaiting: ['goal', 'yellow', 'red'].includes(type) && !!team && !!a.awaiting,
         voided: false,
         createdBy: clientId || '',
         createdAt: now,
@@ -284,6 +298,8 @@ export function execMatchCommand(m, name, a, ctx) {
       if ('number' in p) e.number = str(p.number, 3);
       if ('playerIn' in p) e.playerIn = str(p.playerIn, 60);
       if ('note' in p) e.note = str(p.note, 200);
+      if ('rosterId' in p) e.rosterId = str(p.rosterId, 20);
+      e.awaiting = false;
       if ('voided' in p) e.voided = !!p.voided;
       if ('period' in p) e.period = p.period === 2 ? 2 : 1;
       if ('minute' in p) {
@@ -296,6 +312,13 @@ export function execMatchCommand(m, name, a, ctx) {
       sortEvents(m);
       result = { eventId: e.id };
       audit(m, now, name, `Evento editado (${e.type})`, { id: e.id, before });
+      break;
+    }
+    case 'event.resolve': {
+      const e = findEvent(m, String(a.id));
+      if (!e.awaiting) { changed = false; break; }
+      e.awaiting = false;
+      result = { eventId: e.id };
       break;
     }
     case 'event.delete': {
@@ -325,6 +348,8 @@ export function execMatchCommand(m, name, a, ctx) {
       if ('durations' in p) m.durations = cleanDurations(p.durations, m.durations);
       if ('home' in p) m.home = cleanTeam(p.home, m.home);
       if ('away' in p) m.away = cleanTeam(p.away, m.away);
+      if (Array.isArray(p.starters)) m.starters = p.starters.map(String).slice(0, 40);
+      if ('mvp' in p) m.mvp = str(p.mvp, 20);
       audit(m, now, name, 'Datos del partido editados');
       break;
     }
@@ -354,6 +379,8 @@ export function publicMatch(m) {
     number: e.number,
     playerIn: e.playerIn,
     note: e.note,
+    rosterId: e.rosterId || '',
+    awaiting: !!e.awaiting,
     voided: e.voided,
     edited: e.edited,
   }));
@@ -368,6 +395,9 @@ export function publicMatch(m) {
     away: m.away,
     durations: m.durations,
     clock: { ...m.clock },
+    countdownEndsAt: m.countdownEndsAt || 0,
+    starters: m.starters || [],
+    mvp: m.mvp || '',
     score: computeScore(m.events),
     events,
     rev: m.rev,

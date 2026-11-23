@@ -8,9 +8,16 @@ export const DEFAULT_SETTINGS = () => ({
   key: '',
   sessions: [],
   activeMatchId: null,
-  club: { name: 'Club Femenino Santa Ponsa', short: 'FFSP', color: '#B9A5F0', logo: '' },
+  club: { name: 'Club Femenino Santa Ponsa', short: 'FFSP', color: '#B9A5F0', logo: '', nextMatch: '' },
+  roster: [], // { id, number, name, full, starter }
+  staff: { coach: '', delegate: '' },
+  sponsors: [], // { id, url }
+  strip: { enabled: false, seconds: 7, messages: [], sponsors: true },
   display: {
     mode: 'camera', // camera | studio  (lo que muestra /live)
+    screen: 'auto', // auto | live | prematch | lineup | halftime | final | stats | sponsors (pantalla sin cámara)
+    askScorer: true, // al registrar un gol/tarjeta del club, pregunta qué jugadora
+    goalAnim: true, // animación grande de gol en la pantalla sin cámara
     layout: 'h', // h = 16:9, v = 9:16 (lo que muestra /live si no se fuerza)
     // Márgenes en píxeles sobre el lienzo de 1920x1080 (h) o 1080x1920 (v).
     margins: {

@@ -38,6 +38,15 @@ Roja, Cambio; *Guardar jugada* y *Deshacer último evento*. Toca cualquier event
 tachado y no cuenta) o eliminarlo. El marcador se calcula siempre a partir de los eventos, así que nunca queda incoherente.
 Si una pulsación no llega al portátil queda como **pendiente/fallida** en una franja visible y se reenvía sola sin duplicarse.
 
+## 4b. Animaciones, plantilla y patrocinadores
+Cuenta atrás, alineación, gol animado con la jugadora, descanso con resumen y patrocinadores, estadísticas y pantalla final: ver [Pantallas y animaciones](docs/PANTALLAS-Y-ANIMACIONES.md).
+
+## Actualizar a una versión nueva (sin perder datos)
+1. Cierra la ventana negra de `iniciar.bat`.
+2. En GitHub: *Code → Download ZIP* de la rama (se guarda en Descargas).
+3. Doble clic en **`actualizar.bat`**: usa el ZIP más reciente de Descargas, **hace una copia de seguridad de `data`** y copia los archivos nuevos sin tocar tus datos.
+4. Abre `iniciar.bat`. En OBS: clic derecho en la fuente → *Actualizar caché del navegador*.
+
 ## 5. Más guías
 
 - [OBS: fuentes, vertical, clips y búfer](docs/OBS.md)

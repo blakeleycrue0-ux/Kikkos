@@ -1,6 +1,6 @@
 # Qué está verificado y qué falta comprobar
 
-## Verificado con pruebas automáticas (`npm test`, 31 pruebas)
+## Verificado con pruebas automáticas (`npm test`, 36 pruebas)
 - Reloj: 1ª parte, descanso, 2ª parte en el minuto de la duración configurada, duraciones distintas, corrección, ajuste, pausa, tiempo añadido; las repeticiones no lo reinician.
 - Eventos: gol con minuto y marcador inmediato, varios en el mismo minuto, jugadora/nota después, editar, **anular**, eliminar y deshacer dejan marcador e historial coherentes; auditoría de lo eliminado.
 - Doble pulsación y reintentos (mismo identificador, otra conexión, tras reiniciar el servidor): no duplican.
@@ -12,7 +12,10 @@
   archivo todavía escribiéndose; fallo puntual de OBS con reintento automático; OBS caído y reconectado; *Guardado* solo con archivo existente; reintento manual; comprobación y ajuste del búfer; contraseña incorrecta.
 - Interfaz en navegador real: gol del móvil → pantalla de emisión → deshacer; pérdida de conexión → pendiente → reconexión sin duplicar; retraso de marcador/reloj y recarga sin reiniciar el reloj; las 4 distribuciones caben en su lienzo y respetan márgenes (capturas revisadas a 1920×1080, 1080×1920 y móvil).
 
+- Plantilla importada desde texto, alineación por partido, cuenta atrás, animación de gol que espera el nombre de la jugadora, pantallas automáticas (previa, descanso, final), estadísticas y goleadoras de temporada: probado con pruebas y capturas.
+
 ## Hay que comprobarlo con vuestro material
+0. **`actualizar.bat`** (PowerShell en Windows): escrito con cuidado pero no he podido ejecutarlo en Windows. Hace copia de seguridad de `data` antes de copiar nada.
 1. **OBS real** (versión y WebSocket): el protocolo se implementó contra la documentación oficial vigente (obs-websocket 5.x), pero se probó con un simulador. Verificad la conexión,
    que `Ajustar búfer` aplica la duración en vuestra versión (puede requerir reiniciar OBS si el búfer no estaba activado) y que el archivo guardado se recorta bien con vuestra codificación.
 2. **Falcon → OBS**: cómo llega la señal (NDI, RTMP, USB, captura…) no se asumió. Medid el retraso real con la guía de calibración. No se asumió ninguna API de la Falcon.

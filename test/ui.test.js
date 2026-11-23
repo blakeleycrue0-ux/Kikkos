@@ -129,3 +129,53 @@ test('UI: las dos distribuciones caben en su lienzo y respetan los márgenes', o
     }
   } finally { ctl.close(); await browser.close(); await s.close(); }
 });
+
+test('UI: pantallas automáticas, alineación, y gol del club con jugadora elegida desde el móvil', opts, async () => {
+  const s = await boot();
+  const ctl = await new TestClient(s.base, { role: 'control', key: s.key }).connect();
+  const browser = await chromium.launch();
+  try {
+    await ctl.cmd('roster.import', { text: 'Titulares\n9 FERRER COLL, MARTA\n10 GARCIA SOLER, LUCIA\nSuplentes\n4 NOGUERA, ZENYA\nEntrenador: VIDAL COSTA, PAU' });
+    await ctl.cmd('match.create', { rival: { name: 'CE Prueba' } });
+    const obs = await (await browser.newContext({ viewport: { width: 1080, height: 1920 } })).newPage();
+    await obs.goto(`${s.base}/studio/v`);
+    await obs.waitForSelector('.sp-prematch', { timeout: 5000 });
+    await ctl.cmd('clock.countdown', { minutes: 10 });
+    await obs.waitForSelector('.sp-cd .cdv');
+    assert.match(await txt(obs, '.cdv'), /^(09|10):\d\d$/, 'cuenta atrás de 10 minutos');
+    await ctl.cmd('settings.update', { patch: { display: { screen: 'lineup' } } });
+    await obs.waitForSelector('.lu-row');
+    const names = await obs.locator('.lu-name').allInnerTexts();
+    assert.deepEqual(names, ['Marta Ferrer', 'Lucia Garcia'], 'solo las titulares, con su nombre');
+    assert.match(await txt(obs, '.lu-coach b'), /Pau Vidal/);
+    await ctl.cmd('settings.update', { patch: { display: { screen: 'auto' } } });
+    await ctl.cmd('clock.start1');
+    await obs.waitForSelector('.timeline');
+
+    const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })).newPage();
+    await phone.goto(`${s.base}/control?k=${s.key}`);
+    await phone.waitForSelector('#liveGrid [data-ev="goal"]');
+    const homeBtn = '#liveGrid [data-ev="goal"][data-team="home"]'; // el club juega de local por defecto
+    await phone.click(homeBtn);
+    await phone.waitForSelector('.pick .pk');
+    assert.equal(await obs.locator('.goalfx').count(), 0, 'la animación espera al nombre');
+    await phone.click('.pk[data-pk] >> text=Marta Ferrer');
+    await obs.waitForSelector('.goalfx .fx-name', { timeout: 4000 });
+    assert.equal(await txt(obs, '.fx-name'), 'Marta Ferrer');
+    assert.equal(await txt(obs, '.fx-num'), '9');
+    assert.equal(await txt(obs, '.fx-word'), 'GOL');
+    assert.equal(await txt(obs, '.sc-h'), '1');
+    // gol del rival: aviso discreto, sin animación grande
+    await sleep(900);
+    await phone.click('#liveGrid [data-ev="goal"][data-team="away"]');
+    await obs.waitForSelector('.notice', { timeout: 6000 });
+    assert.equal(await obs.locator('.goalfx').count() <= 1, true);
+    // descanso y final cambian solos de pantalla
+    await ctl.cmd('clock.halftime');
+    await obs.waitForSelector('.sp-halftime');
+    await ctl.cmd('clock.start2');
+    await ctl.cmd('clock.finish');
+    await obs.waitForSelector('.sp-final');
+    assert.ok((await obs.locator('.sm-row').count()) >= 1);
+  } finally { ctl.close(); await browser.close(); await s.close(); }
+});

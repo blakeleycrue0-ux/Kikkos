@@ -85,6 +85,7 @@ function afterOk(a, m) {
   const r = m.result || {};
   if (a.name === 'event.add') {
     S.lastAdded = r.eventId;
+    if (a.args.awaiting && r.eventId && !r.deduped) { openScorerSheet(r.eventId, a.args.type); return; }
     toast(`${a.label} registrado${r.deduped ? ' (ya estaba)' : ''}`, { action: { label: 'Añadir detalle', fn: () => openEventSheet(r.eventId) } });
   } else if (a.name === 'event.undo') toast(`Deshecho: ${TYPE_LABEL[r.type] || 'evento'}`);
   else if (a.name === 'key.regenerate') { toast('Nueva clave generada'); api('/api/login', { method: 'POST', body: JSON.stringify({ key: r.key }) }).then(() => link.wake()); }
@@ -113,17 +114,46 @@ function toast(msg, { bad = false, action, ms = 3500 } = {}) {
 }
 
 function openSheet(html, mount) {
+  S.sheetClose = null;
   $('#sheet').innerHTML = html;
   $('#sheetWrap').hidden = false;
   mount?.($('#sheet'));
 }
-function closeSheet() { $('#sheetWrap').hidden = true; $('#sheet').innerHTML = ''; }
+function closeSheet() {
+  const f = S.sheetClose;
+  S.sheetClose = null;
+  $('#sheetWrap').hidden = true;
+  $('#sheet').innerHTML = '';
+  f?.();
+}
 $('#sheetWrap').addEventListener('click', (e) => { if (e.target.id === 'sheetWrap') closeSheet(); });
 
 function confirmSheet(title, msg, okLabel, fn, danger = false) {
   openSheet(`<h1>${esc(title)}</h1><p class="muted">${esc(msg)}</p><div class="actions"><button class="btn ${danger ? 'danger' : 'primary'} block" id="cfOk">${esc(okLabel)}</button><button class="btn ghost block" id="cfNo">Cancelar</button></div>`, (sh) => {
     $('#cfNo', sh).onclick = closeSheet;
     $('#cfOk', sh).onclick = () => { closeSheet(); fn(); };
+  });
+}
+
+function openScorerSheet(eventId, type) {
+  const mt = m();
+  const ro = [...(S.s?.squad.roster || [])];
+  if (!ro.length) return;
+  ro.sort((a, b) => (mt.starters.includes(b.id) - mt.starters.includes(a.id)) || Number(a.number) - Number(b.number));
+  let done = false;
+  openSheet(`<h1>${esc(TYPE_LABEL[type] || 'Evento')} · ¿quién ha sido?</h1>
+    <div class="pick">${ro.map((p) => `<button class="pk ${mt.starters.includes(p.id) ? 'st' : ''}" data-pk="${esc(p.id)}"><b>${esc(p.number)}</b><span>${esc(p.name)}</span></button>`).join('')}</div>
+    <div class="actions"><button class="btn ghost block" id="pkNo">Sin jugadora / no lo sé</button></div>`, (sh) => {
+    S.sheetClose = () => { if (!done) act('event.resolve', { id: eventId }, '', { quiet: true }); };
+    $$('[data-pk]', sh).forEach((b) => {
+      b.onclick = () => {
+        const pl = ro.find((x) => x.id === b.dataset.pk);
+        done = true;
+        closeSheet();
+        act('event.update', { id: eventId, patch: { player: pl.name, number: pl.number, rosterId: pl.id } }, `${pl.number} ${pl.name}`, { quiet: false });
+      };
+    });
+    $('#pkNo', sh).onclick = closeSheet;
   });
 }
 
@@ -234,6 +264,7 @@ function renderLive() {
     root.innerHTML = `<div id="liveScore"></div><div id="livePhase"></div><div id="liveClockTools"></div>
       <h2>Registrar</h2><div id="liveGrid"></div><div id="liveBtns"></div>
       <h2>Últimos eventos</h2><div id="liveRecent" class="recent-list"></div>
+      <h2>Qué se ve en pantalla (sin cámara)</h2><div id="liveShow"></div>
       <h2>Pantalla de emisión</h2><div id="liveAir"></div>`;
   }
   const mt = m();
@@ -294,6 +325,15 @@ function renderLive() {
       <div class="seg" data-seg="display.mode"><button data-v="camera" class="${d.mode === 'camera' ? 'on' : ''}">Con cámara</button><button data-v="studio" class="${d.mode === 'studio' ? 'on' : ''}">Sin cámara</button></div>
       <div class="seg" data-seg="display.layout"><button data-v="h" class="${d.layout === 'h' ? 'on' : ''}">Horizontal 16:9</button><button data-v="v" class="${d.layout === 'v' ? 'on' : ''}">Vertical 9:16</button></div>
       <div class="muted small">Afecta a la pantalla «/live». Las fuentes fijas de OBS (overlay/studio) no cambian. El resultado, el reloj y los eventos son los mismos.</div></div>` : '', JSON.stringify(d && [d.mode, d.layout]));
+  const SCREENS = [['auto', 'Automática'], ['live', 'Marcador'], ['prematch', 'Cuenta atrás'], ['lineup', 'Alineación'], ['halftime', 'Descanso'], ['stats', 'Estadísticas'], ['final', 'Final'], ['sponsors', 'Patrocinadores']];
+  const cur = S.s.display.screen || 'auto';
+  const canCd = ph === 'pre' || ph === 'halftime';
+  setPart('liveShow', `<div class="card" style="display:grid;gap:10px">
+      <div class="seg wrap" data-seg="display.screen">${SCREENS.map(([k, l]) => `<button data-v="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="muted small">«Automática»: cuenta atrás antes de empezar, marcador durante el juego, descanso y final al terminar. Si eliges otra, se queda fija hasta que vuelvas a «Automática».</div>
+      ${canCd ? `<div class="muted small" style="margin-top:4px">${ph === 'pre' ? 'Cuenta atrás para empezar' : 'Cuenta atrás para la 2ª parte'}${mt.countdownEndsAt ? ' (en marcha)' : ''}:</div>
+      <div class="row-btns"><button class="btn sm" data-act="cd" data-m="5">5 min</button><button class="btn sm" data-act="cd" data-m="10">10 min</button><button class="btn sm" data-act="cd" data-m="15">15 min</button><button class="btn sm ghost" data-act="cd" data-m="0">Quitar</button></div>` : ''}</div>`,
+    JSON.stringify([cur, ph, !!mt.countdownEndsAt]));
   updateClock();
 }
 
@@ -335,7 +375,8 @@ document.addEventListener('click', (e) => {
     const type = ev.dataset.ev;
     const side = ev.dataset.team || null;
     const tm = side ? m()[side].short : '';
-    act('event.add', { type, team: side }, `${TYPE_LABEL[type]}${tm ? ' · ' + tm : ''}`);
+    const ask = side && side === m().ffspSide && ['goal', 'yellow', 'red'].includes(type) && S.s.display.askScorer && S.s.squad.roster.length > 0;
+    act('event.add', { type, team: side, ...(ask ? { awaiting: true } : {}) }, `${TYPE_LABEL[type]}${tm ? ' · ' + tm : ''}`);
     return;
   }
   const edit = e.target.closest('[data-edit]');
@@ -363,6 +404,7 @@ document.addEventListener('click', (e) => {
       break;
     }
     case 'setclock': openClockSheet(); break;
+    case 'cd': lock(); act('clock.countdown', { minutes: Number(a.dataset.m) }, Number(a.dataset.m) ? `Cuenta atrás de ${a.dataset.m} min` : 'Cuenta atrás quitada'); break;
     case 'undo': lock(); act('event.undo', {}, 'Deshacer último evento'); break;
     default:
   }
@@ -576,6 +618,8 @@ function renderAir() {
 
     <h2>Pantalla sin cámara</h2>
     <div class="card fields">
+      <label class="switch"><span>Animación grande de GOL</span><input type="checkbox" data-set="display.goalAnim" data-type="bool" ${d.goalAnim ? 'checked' : ''}></label>
+      <label class="switch"><span>Preguntar qué jugadora tras gol o tarjeta del club</span><input type="checkbox" data-set="display.askScorer" data-type="bool" ${d.askScorer ? 'checked' : ''}></label>
       <label class="switch"><span>Escudos en silueta blanca (pierde los detalles)</span><input type="checkbox" data-set="display.whiteLogos" data-type="bool" ${d.whiteLogos ? 'checked' : ''}></label>
       <div class="logo-pick"><label class="btn sm" style="cursor:pointer">Subir imagen de fondo<input type="file" accept="image/png,image/jpeg,image/webp" hidden data-bg></label>
         ${a.hasBackground ? '<button class="btn sm ghost" data-bgremove>Quitar fondo</button><span class="muted small">Fondo personalizado activo</span>' : '<span class="muted small">Ahora: fondo lila provisional</span>'}</div>
@@ -699,7 +743,7 @@ function renderMore() {
   const sec = (id, title, body) => `<details class="sec" id="${id}" ${S.openSecs.has(id) ? 'open' : ''}><summary>${title}</summary><div class="body">${body}</div></details>`;
   const lan = a.lan[Math.min(lanIdx, Math.max(0, a.lan.length - 1))];
   const ctlUrl = lan ? `${lan.url}/control?k=${a.key}` : '';
-  const sigNow = JSON.stringify([a.settings, mt.id, mt.name, mt.home, mt.away, mt.durations, mt.date, mt.category, a.matches, a.lan, a.key, lanIdx, showKey, a.obs.state]);
+  const sigNow = JSON.stringify([a.settings, mt.starters, mt.mvp, mt.id, mt.name, mt.home, mt.away, mt.durations, mt.date, mt.category, a.matches, a.lan, a.key, lanIdx, showKey, a.obs.state]);
   if (root.dataset.sig === sigNow) return;
   root.dataset.sig = sigNow;
   const presetOpts = PRESETS.map(([n, mnt]) => `<option value="${mnt}">${n} (${mnt}′ por parte)</option>`).join('');
@@ -712,6 +756,7 @@ function renderMore() {
       ${teamFields('mH', mt.home, 'home')}${teamFields('mA', mt.away, 'away')}
       <button class="btn primary block" data-more="saveMatch">Guardar datos del partido</button>
       <div class="muted small">La 2ª parte empezará en el minuto ${mt.durations[0]} (duración de la 1ª parte).</div>`)}
+    ${sec('sec-lineup', 'Alineación y jugadora del partido', lineupBody(st, mt))}
     ${sec('sec-new', 'Nuevo partido', `
       <div><label class="f">Rival</label><input type="text" id="nRival" maxlength="60" placeholder="Nombre del equipo rival"></div>
       <div class="fields two"><div><label class="f">Abreviatura</label><input type="text" id="nShort" maxlength="5" placeholder="Automática"></div><div><label class="f">Color</label><input type="color" id="nColor" value="#ffffff"></div></div>
@@ -725,6 +770,10 @@ function renderMore() {
         <div class="row-btns" style="flex:none;flex-wrap:nowrap">${x.id === mt.id ? '<span class="chip ok">Abierto</span>' : `<button class="btn sm" data-more="open" data-id="${esc(x.id)}">Abrir</button>`}
         <a class="btn sm" href="/api/matches/${esc(x.id)}/export?format=csv">CSV</a><a class="btn sm" href="/api/matches/${esc(x.id)}/export?format=json">JSON</a>
         ${x.id === mt.id ? '' : `<button class="btn sm danger" data-more="delete" data-id="${esc(x.id)}">×</button>`}</div></div>`).join('') || '<div class="muted">Sin partidos.</div>')}
+
+    <h2>Plantilla y patrocinadores</h2>
+    ${sec('sec-roster', `Plantilla (${st.roster.length})`, rosterBody(st))}
+    ${sec('sec-spons', `Patrocinadores y cinta (${st.sponsors.length})`, sponsBody(st))}
 
     <h2>Conexión</h2>
     ${sec('sec-conn', 'Abrir el mando en otro móvil', `
@@ -758,8 +807,40 @@ function renderMore() {
       <div><label class="f">Nombre</label><input type="text" id="kName" maxlength="60" value="${esc(st.club.name)}"></div>
       <div class="fields two"><div><label class="f">Abreviatura</label><input type="text" id="kShort" maxlength="5" value="${esc(st.club.short)}"></div><div><label class="f">Color</label><input type="color" id="kColor" value="${esc(st.club.color)}"></div></div>
       <div class="logo-pick">${badge(st.club)}<label class="btn sm" style="cursor:pointer">Subir escudo del club<input type="file" accept="image/*" hidden data-logo="club"></label></div>
+      <div><label class="f">Próximo partido (texto para la pantalla final)</label><input type="text" id="kNext" maxlength="140" value="${esc(st.club.nextMatch || '')}" placeholder="Sáb 29 nov · 12:00 · Campo · vs Rival"></div>
       <button class="btn primary block" data-more="saveClub">Guardar club</button>`)}
     <div class="muted small" style="text-align:center;margin-top:18px">FFSP · Control de retransmisiones</div>`;
+}
+
+function rosterBody(st) {
+  const row = (p) => `<div class="ro-row" data-rid="${esc(p.id || '')}" data-full="${esc(p.full || '')}"><input class="ro-n" type="text" inputmode="numeric" maxlength="3" value="${esc(p.number)}" aria-label="Dorsal"><input class="ro-name" type="text" maxlength="40" value="${esc(p.name)}" aria-label="Nombre"><label class="ro-s"><input type="checkbox" ${p.starter ? 'checked' : ''}><span>Tit.</span></label><button class="btn sm danger" data-more="roDel">×</button></div>`;
+  return `<div class="muted small">Pega la lista del acta («7  APELLIDOS, NOMBRE»; bajo «Titulares» y «Suplentes»; «Entrenador:» y «DEL. Equipo:»). Importar reemplaza la plantilla actual.</div>
+    <textarea id="rText" placeholder="Titulares&#10;1 APELLIDOS, NOMBRE&#10;...&#10;Suplentes&#10;4 APELLIDOS, NOMBRE"></textarea>
+    <button class="btn primary block" data-more="rosterImport">Importar plantilla</button>
+    <div id="roList" style="display:grid;gap:8px">${st.roster.map(row).join('') || '<div class="muted small">Aún no hay jugadoras.</div>'}</div>
+    <button class="btn block" data-more="roAdd">Añadir jugadora</button>
+    <div class="fields two"><div><label class="f">Entrenador/a</label><input type="text" id="rCoach" maxlength="40" value="${esc(st.staff.coach)}"></div><div><label class="f">Delegado/a</label><input type="text" id="rDel" maxlength="40" value="${esc(st.staff.delegate)}"></div></div>
+    <button class="btn primary block" data-more="roSave">Guardar plantilla</button>
+    <div class="muted small">«Tit.» marca quién empieza de titular por defecto en los partidos nuevos. Los nombres se muestran tal cual los escribas aquí.</div>`;
+}
+
+function lineupBody(st, mt) {
+  if (!st.roster.length) return '<div class="muted">Primero añade la plantilla (Ajustes → Plantilla).</div>';
+  return `<div class="muted small">Marca quién es titular en ESTE partido (se verá en la pantalla «Alineación»).</div>
+    <div class="fields">${st.roster.map((p) => `<label class="switch"><span><b>${esc(p.number)}</b> &nbsp;${esc(p.name)}</span><input type="checkbox" data-lu="${esc(p.id)}" ${mt.starters.includes(p.id) ? 'checked' : ''}></label>`).join('')}</div>
+    <div><label class="f">Jugadora del partido (pantalla final)</label><select id="luMvp"><option value="">Ninguna</option>${st.roster.map((p) => `<option value="${esc(p.id)}" ${mt.mvp === p.id ? 'selected' : ''}>${esc(p.number)} · ${esc(p.name)}</option>`).join('')}</select></div>
+    <button class="btn primary block" data-more="luSave">Guardar alineación</button>`;
+}
+
+function sponsBody(st) {
+  return `<div class="logo-pick"><label class="btn sm" style="cursor:pointer">Subir logo de patrocinador<input type="file" accept="image/*" hidden data-sponsor></label><span class="muted small">Máximo 12</span></div>
+    <div class="spons">${st.sponsors.map((x) => `<div class="sp-i"><img src="${esc(x.url)}" alt=""><button class="btn sm danger" data-more="sponDel" data-id="${esc(x.id)}">×</button></div>`).join('') || '<div class="muted small">Sin patrocinadores.</div>'}</div>
+    <label class="switch"><span>Cinta rotatoria con mensajes y logos</span><input type="checkbox" data-set="strip.enabled" data-type="bool" ${st.strip.enabled ? 'checked' : ''}></label>
+    <label class="switch"><span>Incluir los logos en la cinta</span><input type="checkbox" data-set="strip.sponsors" data-type="bool" ${st.strip.sponsors ? 'checked' : ''}></label>
+    <div><label class="f">Segundos por elemento</label><input type="number" min="3" max="30" inputmode="numeric" data-set="strip.seconds" data-type="num" value="${st.strip.seconds}"></div>
+    <div><label class="f">Mensajes (uno por línea)</label><textarea id="sMsgs" placeholder="Sigue al club en @futbolfemeninosantaponsa">${esc(st.strip.messages.join('\n'))}</textarea></div>
+    <button class="btn primary block" data-more="saveStrip">Guardar mensajes</button>
+    <div class="muted small">La cinta sale en la pantalla sin cámara (marcador, descanso, final…). Con un logo, también aparece «con el apoyo de» en la animación de gol.</div>`;
 }
 
 async function prepareImage(file) {
@@ -775,6 +856,17 @@ async function prepareImage(file) {
 $('#tab-more').addEventListener('change', async (e) => {
   if (e.target.id === 'lanSel') { lanIdx = Number(e.target.value); $('#tab-more').dataset.sig = ''; renderMore(); return; }
   if (e.target.id === 'nPreset' && e.target.value) { $('#nD1').value = e.target.value; $('#nD2').value = e.target.value; return; }
+  const sp = e.target.closest('input[data-sponsor]');
+  if (sp && sp.files[0]) {
+    try {
+      const blob = await prepareImage(sp.files[0]);
+      const r = await api('/api/upload/logo', { method: 'POST', body: blob });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'No se pudo subir');
+      act('sponsor.add', { url: j.url }, 'Patrocinador añadido');
+    } catch (err) { toast(err.message, { bad: true }); }
+    return;
+  }
   const input = e.target.closest('input[data-logo]');
   if (!input || !input.files[0]) return;
   const side = input.dataset.logo;
@@ -811,6 +903,29 @@ $('#tab-more').addEventListener('click', (e) => {
     case 'newTest': act('match.createTest', {}, 'Partido de prueba creado', { after: () => setTab('live') }); break;
     case 'open': act('match.select', { id: b.dataset.id }, 'Partido abierto', { after: () => setTab('live') }); break;
     case 'delete': confirmSheet('¿Eliminar el partido?', 'Se borra el partido y todos sus eventos de este portátil. No se puede deshacer. Los clips ya guardados no se borran.', 'Eliminar partido', () => act('match.delete', { id: b.dataset.id }, 'Partido eliminado'), true); break;
+    case 'rosterImport':
+      if (!v('rText').trim()) { toast('Pega primero la lista de jugadoras', { bad: true }); break; }
+      act('roster.import', { text: v('rText') }, 'Plantilla importada');
+      break;
+    case 'roAdd': {
+      const d = document.createElement('div');
+      d.className = 'ro-row';
+      d.innerHTML = '<input class="ro-n" type="text" inputmode="numeric" maxlength="3" placeholder="Nº"><input class="ro-name" type="text" maxlength="40" placeholder="Nombre"><label class="ro-s"><input type="checkbox"><span>Tit.</span></label><button class="btn sm danger" data-more="roDel">×</button>';
+      $('#roList').appendChild(d);
+      d.querySelector('.ro-n').focus();
+      break;
+    }
+    case 'roDel': b.closest('.ro-row').remove(); break;
+    case 'roSave': {
+      const roster = $$('#roList .ro-row').map((r) => ({ id: r.dataset.rid || undefined, full: r.dataset.full || '', number: r.querySelector('.ro-n').value, name: r.querySelector('.ro-name').value, starter: r.querySelector('.ro-s input').checked }));
+      act('roster.save', { roster, staff: { coach: v('rCoach'), delegate: v('rDel') } }, 'Plantilla guardada');
+      break;
+    }
+    case 'luSave':
+      act('match.update', { patch: { starters: $$('[data-lu]').filter((c) => c.checked).map((c) => c.dataset.lu), mvp: v('luMvp') } }, 'Alineación guardada');
+      break;
+    case 'sponDel': act('sponsor.remove', { id: b.dataset.id }, 'Patrocinador quitado'); break;
+    case 'saveStrip': act('settings.update', { patch: { strip: { messages: v('sMsgs').split('\n') } } }, 'Mensajes guardados'); break;
     case 'togglekey': showKey = !showKey; $('#tab-more').dataset.sig = ''; renderMore(); break;
     case 'newkey': confirmSheet('¿Generar una clave nueva?', 'Los demás móviles con el mando abierto tendrán que volver a entrar con la clave nueva. Este móvil seguirá conectado.', 'Generar clave', () => act('key.regenerate', {}, 'Generar clave nueva'), true); break;
     case 'saveObs': {
@@ -820,7 +935,7 @@ $('#tab-more').addEventListener('click', (e) => {
       break;
     }
     case 'saveDir': act('settings.update', { patch: { clips: { dir: v('cDir') } } }, 'Carpeta de clips guardada'); break;
-    case 'saveClub': act('settings.update', { patch: { club: { name: v('kName'), short: v('kShort'), color: v('kColor') } } }, 'Club guardado'); break;
+    case 'saveClub': act('settings.update', { patch: { club: { name: v('kName'), short: v('kShort'), color: v('kColor'), nextMatch: v('kNext') } } }, 'Club guardado'); break;
     default:
   }
 });
