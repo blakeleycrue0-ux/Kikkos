@@ -242,3 +242,14 @@ test('fondo personalizado: subir, servir, quitar; solo con clave y solo imágene
   assert.equal((await fetch(`${s.base}/assets/background`)).status, 404);
   await s.close();
 });
+
+test('versión: hello incluye la versión y /estado la muestra', async () => {
+  const s = await boot();
+  const v = await new TestClient(s.base).connect();
+  assert.match(v.hello.build, /^\d+\.\d+\.\d+-[a-z0-9]+$/);
+  const html = await (await fetch(`${s.base}/estado`)).text();
+  assert.ok(html.includes(v.hello.build));
+  assert.match(html, /Pantalla elegida/);
+  v.close();
+  await s.close();
+});

@@ -12,6 +12,7 @@ import { ObsClient } from './obs.js';
 import { ClipManager } from './clips.js';
 import { ffmpegVersion } from './ffmpeg.js';
 import { parseRoster } from './roster.js';
+import { BUILD, VERSION } from './config.js';
 import { uid, makeKey, clamp, isObj, safeEqual, normalizeKey } from './util.js';
 
 const CMD_LOG_MAX = 400;
@@ -189,6 +190,8 @@ export class App extends EventEmitter {
       clips: this.clips.list(),
       clipsDir: this.clips.clipsDir(),
       hasBackground: !!this.backgroundFile(),
+      build: BUILD,
+      version: VERSION,
       matches: this.store.listMatches().map(matchSummary).sort((a, b) => b.updatedAt - a.updatedAt),
       lan: this.lanAddresses(),
       port: this.port,

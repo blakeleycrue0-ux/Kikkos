@@ -133,6 +133,11 @@ export class Link {
         case 'hello':
           if (!this.synced) this.offset = m.serverTime - Date.now();
           this.authRole = m.role;
+          if (m.build) {
+            // Si el servidor se actualiza mientras la página sigue abierta, recarga para usar el código nuevo.
+            if (this.build && this.build !== m.build) { location.reload(); return; }
+            this.build = m.build;
+          }
           this.snapshots = m.snapshots || [];
           this.setStatus('online');
           this.onHello?.(m);

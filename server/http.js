@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { PUBLIC_DIR } from './config.js';
 import { exportCsv } from './engine.js';
 import { uid } from './util.js';
+import { BUILD, VERSION, DATA_DIR } from './config.js';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -131,6 +132,27 @@ export function createRequestHandler(app) {
       }
 
       if (p === '/api/state') return send(res, 200, app.publicState());
+
+      if (p === '/estado') {
+        const st = app.publicState();
+        const c = app.connCounts?.() || { views: 0, controls: 0 };
+        const rows = [
+          ['Versión de la app', `${VERSION} (${BUILD})`],
+          ['Carpeta de datos', app.dataDir || DATA_DIR],
+          ['Partido', `${st.match.name} · fase: ${st.match.clock.phase}`],
+          ['Pantalla elegida (sin cámara)', st.display.screen],
+          ['Modo / formato de /live', `${st.display.mode} / ${st.display.layout}`],
+          ['Jugadoras en la plantilla', st.squad.roster.length],
+          ['Titulares de este partido', st.match.starters.length],
+          ['Pantallas de emisión conectadas', c.views],
+          ['Mandos conectados', c.controls],
+        ];
+        const esc = (x) => String(x).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+        return send(res, 200, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FFSP · Estado</title>
+<style>body{font:18px system-ui;background:#0a0a0d;color:#f4f3f8;padding:24px;max-width:720px;margin:auto}h1{color:#c9b8f6}table{width:100%;border-collapse:collapse}td{padding:10px 6px;border-bottom:1px solid #333;vertical-align:top}td:first-child{color:#a9a6ba;width:46%}</style>
+<h1>FFSP · Estado de la aplicación</h1><table>${rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td><b>${esc(b)}</b></td></tr>`).join('')}</table>
+<p style="color:#a9a6ba">Si «Versión de la app» no es la última, estás ejecutando una copia antigua.</p>`, { 'Content-Type': 'text/html; charset=utf-8' });
+      }
 
       if (p.startsWith('/api/')) {
         if (!authed(req, url)) return send(res, 401, { ok: false, error: 'No autorizado' });

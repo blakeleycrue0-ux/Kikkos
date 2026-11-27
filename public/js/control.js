@@ -809,7 +809,7 @@ function renderMore() {
       <div class="logo-pick">${badge(st.club)}<label class="btn sm" style="cursor:pointer">Subir escudo del club<input type="file" accept="image/*" hidden data-logo="club"></label></div>
       <div><label class="f">Próximo partido (texto para la pantalla final)</label><input type="text" id="kNext" maxlength="140" value="${esc(st.club.nextMatch || '')}" placeholder="Sáb 29 nov · 12:00 · Campo · vs Rival"></div>
       <button class="btn primary block" data-more="saveClub">Guardar club</button>`)}
-    <div class="muted small" style="text-align:center;margin-top:18px">FFSP · Control de retransmisiones</div>`;
+    <div class="muted small" style="text-align:center;margin-top:18px">FFSP · Control de retransmisiones · versión ${esc(a.version || '')}</div>`;
 }
 
 function rosterBody(st) {

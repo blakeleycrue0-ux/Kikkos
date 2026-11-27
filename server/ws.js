@@ -2,6 +2,7 @@
 import { WebSocketServer } from 'ws';
 import { parseCookies, clientIp } from './http.js';
 import { uid } from './util.js';
+import { BUILD } from './config.js';
 
 export function attachWebSocket(server, app) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
@@ -34,7 +35,7 @@ export function attachWebSocket(server, app) {
     clients.add(c);
 
     const now = Date.now();
-    send(c, { t: 'hello', role: c.role, serverTime: now, snapshots: c.role === 'view' ? app.recentSnapshots(now) : undefined });
+    send(c, { t: 'hello', role: c.role, build: BUILD, serverTime: now, snapshots: c.role === 'view' ? app.recentSnapshots(now) : undefined });
     send(c, { t: 'state', state: app.publicState(now) });
     if (c.role === 'control') send(c, { t: 'admin', admin: app.adminState() });
 
@@ -75,6 +76,8 @@ export function attachWebSocket(server, app) {
     ws.on('close', () => clients.delete(c));
     ws.on('error', () => clients.delete(c));
   });
+
+  app.connCounts = () => ({ views: [...clients].filter((c) => c.role === 'view').length, controls: [...clients].filter((c) => c.role === 'control').length });
 
   app.on('state', (state) => {
     const payload = JSON.stringify({ t: 'state', state });
