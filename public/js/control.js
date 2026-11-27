@@ -836,6 +836,7 @@ function sponsBody(st) {
   return `<div class="logo-pick"><label class="btn sm" style="cursor:pointer">Subir logo de patrocinador<input type="file" accept="image/*" hidden data-sponsor></label><span class="muted small">Máximo 12</span></div>
     <div class="spons">${st.sponsors.map((x) => `<div class="sp-i"><img src="${esc(x.url)}" alt=""><button class="btn sm danger" data-more="sponDel" data-id="${esc(x.id)}">×</button></div>`).join('') || '<div class="muted small">Sin patrocinadores.</div>'}</div>
     <label class="switch"><span>Cinta rotatoria con mensajes y logos</span><input type="checkbox" data-set="strip.enabled" data-type="bool" ${st.strip.enabled ? 'checked' : ''}></label>
+    <label class="switch"><span>Fondo blanco detrás de los logos (si alguno no se ve bien)</span><input type="checkbox" data-set="strip.whiteBadge" data-type="bool" ${st.strip.whiteBadge ? 'checked' : ''}></label>
     <label class="switch"><span>Incluir los logos en la cinta</span><input type="checkbox" data-set="strip.sponsors" data-type="bool" ${st.strip.sponsors ? 'checked' : ''}></label>
     <div><label class="f">Segundos por elemento</label><input type="number" min="3" max="30" inputmode="numeric" data-set="strip.seconds" data-type="num" value="${st.strip.seconds}"></div>
     <div><label class="f">Mensajes (uno por línea)</label><textarea id="sMsgs" placeholder="Sigue al club en @futbolfemeninosantaponsa">${esc(st.strip.messages.join('\n'))}</textarea></div>

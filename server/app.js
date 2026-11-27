@@ -453,6 +453,7 @@ export class App extends EventEmitter {
       const t = p.strip;
       if ('enabled' in t) s.strip.enabled = !!t.enabled;
       if ('sponsors' in t) s.strip.sponsors = !!t.sponsors;
+      if ('whiteBadge' in t) s.strip.whiteBadge = !!t.whiteBadge;
       if ('seconds' in t) s.strip.seconds = num(t.seconds, 3, 30, 7);
       if (Array.isArray(t.messages)) s.strip.messages = t.messages.map((x) => String(x).trim().slice(0, 100)).filter(Boolean).slice(0, 10);
     }

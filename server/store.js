@@ -12,7 +12,7 @@ export const DEFAULT_SETTINGS = () => ({
   roster: [], // { id, number, name, full, starter }
   staff: { coach: '', delegate: '' },
   sponsors: [], // { id, url }
-  strip: { enabled: false, seconds: 7, messages: [], sponsors: true },
+  strip: { enabled: false, seconds: 7, messages: [], sponsors: true, whiteBadge: false },
   display: {
     mode: 'camera', // camera | studio  (lo que muestra /live)
     screen: 'auto', // auto | live | prematch | lineup | halftime | final | stats | sponsors (pantalla sin cámara)

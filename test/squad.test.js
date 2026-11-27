@@ -85,6 +85,9 @@ test('plantilla, alineación y cuenta atrás en el servidor; goles con jugadora 
   await ctl.cmd('settings.update', { patch: { strip: { enabled: true, messages: ['Sigue al club', '  ', 'Comparte el directo'], seconds: 5 }, display: { screen: 'lineup' } } });
   assert.deepEqual(ctl.state.strip.messages, ['Sigue al club', 'Comparte el directo']);
   assert.equal(ctl.state.display.screen, 'lineup');
+  assert.equal(ctl.state.strip.whiteBadge, false, 'por defecto los logos van sin fondo blanco');
+  await ctl.cmd('settings.update', { patch: { strip: { whiteBadge: true } } });
+  assert.equal(ctl.state.strip.whiteBadge, true);
   await ctl.cmd('settings.update', { patch: { display: { screen: 'inventada' } } });
   assert.equal(ctl.state.display.screen, 'lineup');
   await ctl.cmd('sponsor.remove', { id: ctl.state.sponsors[0].id });

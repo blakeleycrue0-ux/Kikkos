@@ -376,6 +376,7 @@ function tick() {
     sig = '';
   }
   document.body.classList.toggle('white-logos', !!display.whiteLogos);
+  document.body.classList.toggle('spon-bg', !!extras.strip.whiteBadge);
 
   if (key !== sig || changedScreen) {
     sig = key;
