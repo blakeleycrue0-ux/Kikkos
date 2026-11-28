@@ -156,18 +156,18 @@ const formHtml = () => {
 
 const surname = (name) => { const w = String(name).trim().split(/\s+/); return (w.length > 1 ? w.slice(1).join(' ') : w[0]).toUpperCase(); };
 const silhouette = '<svg viewBox="0 0 100 110" class="sil"><circle cx="50" cy="38" r="20"/><path d="M12 110c0-26 16-42 38-42s38 16 38 42z"/></svg>';
-const teamPhotoBg = () => (extras.teamPhoto ? '<div class="tp"></div>' : '');
+const heroHtml = () => (extras.teamPhoto ? '<div class="hero"><img src="/assets/teamphoto" alt=""></div>' : '');
 
 function proLineup(m, layout, strip) {
-  const starters = extras.squad.roster.filter((p) => m.starters.includes(p.id)).sort((a, b) => Number(a.number) - Number(b.number));
-  const subs = extras.squad.roster.filter((p) => !m.starters.includes(p.id)).sort((a, b) => Number(a.number) - Number(b.number));
-  const cards = starters.map((p, i) => `<div class="pc" style="--i:${i}"><div class="pc-ph">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span class="pc-big">${esc(p.number)}</span>${silhouette}`}</div><span class="pc-num">${esc(p.number)}</span><div class="pc-name">${esc(surname(p.name))}</div></div>`).join('')
+  const starters = extras.squad.roster.filter((p) => m.starters.includes(p.id)).sort((x, y) => Number(x.number) - Number(y.number));
+  const subs = extras.squad.roster.filter((p) => !m.starters.includes(p.id)).sort((x, y) => Number(x.number) - Number(y.number));
+  const tiles = starters.map((p, i) => `<div class="pt" style="--i:${i}"><b class="pt-n">${esc(p.number)}</b><span class="pt-name">${esc(p.name)}</span></div>`).join('')
     || '<div class="empty">Elige las titulares en Ajustes → Alineación del partido</div>';
   const club = m.ffspSide === 'home' ? m.home : m.away;
-  return `${teamPhotoBg()}<div class="safe studio sp-lineup pro-lu st-${layout}">
+  return `<div class="safe studio sp-lineup pro-lu st-${layout}">
     <div class="pro-title"><b>XI</b><span>INICIAL</span></div>
-    <div class="lu-main"><div class="lu-cards">${cards}</div>
-      <div class="lu-side">${subs.length ? `<div class="lu-subs"><small>SUPLENTES</small>${subs.map((p) => `<span><i>${esc(p.number)}</i>${esc(surname(p.name))}</span>`).join('')}</div>` : ''}
+    <div class="lu-main"><div class="lu-cards">${tiles}</div>
+      <div class="lu-side">${subs.length ? `<div class="lu-subs"><small>SUPLENTES</small>${subs.map((p) => `<span><i>${esc(p.number)}</i>${esc(p.name)}</span>`).join('')}</div>` : ''}
       ${extras.squad.staff.coach ? `<div class="lu-coach"><small>ENTRENADOR</small><b>${esc(extras.squad.staff.coach)}</b></div>` : ''}
       <div class="lu-club">${badge(club, 'b')}</div></div>${strip}</div></div>`;
 }
@@ -197,11 +197,11 @@ function renderStudio(screen, m, d, score, events, layout) {
   const strip = stripHtml();
   const cls = `safe studio sp-${screen} st-${layout}`;
   const pro = d.style === 'pro';
-  const tp = ['prematch', 'halftime', 'final'].includes(screen) ? teamPhotoBg() : '';
+  const hero = ['prematch', 'halftime', 'final'].includes(screen) ? heroHtml() : '';
   if (pro && screen === 'lineup') return proLineup(m, layout, strip);
   switch (screen) {
     case 'prematch':
-      return `${tp}<div class="${cls}">${head('EN DIRECTO')}<div class="sp-center">${teamsBadges(m)}
+      return `<div class="${cls}">${head('EN DIRECTO')}<div class="sp-center">${hero}${teamsBadges(m)}
         ${m.countdownEndsAt ? cdHtml(m, 'COMIENZA EN') : '<div class="sp-cd"><small>PRÓXIMAMENTE</small><b class="soon">El partido va a empezar</b></div>'}
         ${formHtml()}</div>${strip}</div>`;
     case 'lineup': {
@@ -215,19 +215,19 @@ function renderStudio(screen, m, d, score, events, layout) {
         ${extras.squad.staff.coach ? `<div class="lu-coach"><small>ENTRENADOR</small><b>${esc(extras.squad.staff.coach)}</b></div>` : ''}${strip}</div>`;
     }
     case 'halftime':
-      return `${tp}<div class="${cls}">${head('DESCANSO')}
+      return `<div class="${cls}">${head('DESCANSO')}
         <div class="sp-left">${teamsNums(m, score)}${cdHtml(m, '2ª PARTE EN')}</div>
-        <div class="sp-right"><div class="blk-h">Resumen de la primera parte</div><div class="sm">${summaryHtml(m, 'home', 1)}${summaryHtml(m, 'away', 1)}</div>
-          <div class="blk-h">Estadísticas</div>${statsHtml(m)}</div>${strip}</div>`;
+        <div class="sp-right ${hero ? 'has-hero' : ''}">${hero}<div class="blk-h">Resumen de la primera parte</div><div class="sm">${summaryHtml(m, 'home', 1)}${summaryHtml(m, 'away', 1)}</div>
+          ${hero ? '' : `<div class="blk-h">Estadísticas</div>${statsHtml(m)}`}</div>${strip}</div>`;
     case 'final': {
       const mvp = rosterById(m.mvp);
       const next = extras.club.nextMatch;
-      return `${tp}<div class="${cls}">${head('FINAL')}
+      return `<div class="${cls}">${head('FINAL')}
         <div class="sp-left">${teamsNums(m, score)}
           ${mvp ? `<div class="mvp">${mvp.photo ? `<img class="mvp-ph" src="${esc(mvp.photo)}" alt="">` : ''}<small>JUGADORA DEL PARTIDO</small><b>${esc(mvp.number)} · ${esc(mvp.name)}</b></div>` : ''}
           ${formHtml()}${next ? `<div class="next"><small>PRÓXIMO PARTIDO</small><b>${esc(next)}</b></div>` : ''}</div>
-        <div class="sp-right"><div class="blk-h">Goles y tarjetas</div><div class="sm">${summaryHtml(m, 'home')}${summaryHtml(m, 'away')}</div>
-          <div class="blk-h">Estadísticas</div>${statsHtml(m)}<div class="blk-h">El partido minuto a minuto</div>${mapHtml(m)}</div>${strip}</div>`;
+        <div class="sp-right ${hero ? 'has-hero' : ''}">${hero}<div class="blk-h">Goles y tarjetas</div><div class="sm">${summaryHtml(m, 'home')}${summaryHtml(m, 'away')}</div>
+          ${hero ? '' : `<div class="blk-h">Estadísticas</div>${statsHtml(m)}<div class="blk-h">El partido minuto a minuto</div>${mapHtml(m)}`}</div>${strip}</div>`;
     }
     case 'stats':
       return `<div class="${cls}">${head('ESTADÍSTICAS')}
@@ -343,7 +343,7 @@ function showGoalFx({ e, match }, display) {
   const pro = display.style === 'pro';
   if (pro) {
     const pl = (e.rosterId && rosterById(e.rosterId)) || extras.squad.roster.find((x) => who && x.name === who);
-    const photo = pl?.photo ? `<div class="gx-photo"><img src="${esc(pl.photo)}" alt=""></div>` : '';
+    const photo = pl?.photo ? `<div class="gx-photo"><img src="${esc(pl.photo)}" alt=""></div>` : `<div class="gx-badge">${badge(team, 'b')}</div>`;
     el.className = 'goalfx pro';
     el.style.setProperty('--tc', team.color);
     el.innerHTML = `<div class="gx-bg"></div><div class="gx-ghost g1">GOL</div><div class="gx-ghost g2">GOL</div><div class="gx-ghost g3">GOL</div><div class="gx-col"><div class="gx-word">GOL</div>${photo}

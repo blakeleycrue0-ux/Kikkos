@@ -182,7 +182,7 @@ test('UI: pantallas automáticas, alineación, y gol del club con jugadora elegi
 });
 
 
-test('UI Estilo Pro: fichas de alineación con foto, GOL gigante con jugadora y estilo conmutable', opts, async () => {
+test('UI Estilo Pro: alineación con dorsal y nombre, foto de grupo, GOL gigante con jugadora y estilo conmutable', opts, async () => {
   const s = await boot();
   const ctl = await new TestClient(s.base, { role: 'control', key: s.key }).connect();
   const browser = await chromium.launch();
@@ -201,12 +201,12 @@ test('UI Estilo Pro: fichas de alineación con foto, GOL gigante con jugadora y 
     await ctl.cmd('clock.start1');
     const obs = await (await browser.newContext({ viewport: { width: 1080, height: 1920 } })).newPage();
     await obs.goto(`${s.base}/studio/v?screen=lineup`);
-    await obs.waitForSelector('.pc');
+    await obs.waitForSelector('.pt');
     assert.equal(await obs.locator('body.style-pro').count(), 1);
-    assert.equal(await obs.locator('.pc').count(), 2, 'una ficha por titular');
-    assert.equal(await obs.locator('.pc img').count(), 1, 'foto donde la hay; silueta donde no');
-    assert.equal(await obs.locator('.pc .sil').count(), 1);
-    assert.deepEqual(await obs.locator('.pc-name').allInnerTexts(), ['FERRER', 'GARCIA']);
+    assert.equal(await obs.locator('.pt').count(), 2, 'una ficha por titular');
+    assert.equal(await obs.locator('.pt img, .pt .sil').count(), 0, 'sin fotos ni siluetas en la alineación');
+    assert.deepEqual(await obs.locator('.pt-n').allInnerTexts(), ['9', '10']);
+    assert.deepEqual((await obs.locator('.pt-name').allInnerTexts()).map((t) => t.toLowerCase()), ['marta ferrer', 'lucia garcia']);
     await obs.goto(`${s.base}/studio/v`);
     await obs.waitForSelector('.timeline');
     const g = await ctl.cmd('event.add', { type: 'goal', team: ctl.state.match.ffspSide, awaiting: true });
@@ -216,12 +216,14 @@ test('UI Estilo Pro: fichas de alineación con foto, GOL gigante con jugadora y 
     assert.equal(await txt(obs, '.gx-word'), 'GOL');
     assert.match(await txt(obs, '.gx-name'), /Marta Ferrer/i);
     assert.equal(await obs.locator('.gx-photo img').count(), 1, 'la foto de la goleadora sale en la animación');
+    // foto de grupo (recorte): aparece en el descanso
+    assert.equal((await fetch(`${s.base}/api/upload/teamphoto?k=${s.key}`, { method: 'POST', body: png })).status, 200);
+    await ctl.cmd('clock.halftime');
+    await obs.waitForSelector('.sp-halftime .hero img');
+    // sin foto del jugador, el gol muestra el escudo grande
     // volver al estilo clásico desde los ajustes
     await ctl.cmd('settings.update', { patch: { display: { style: 'classic' } } });
     await obs.waitForFunction(() => !document.body.classList.contains('style-pro'));
-    // foto del equipo
-    assert.equal((await fetch(`${s.base}/assets/teamphoto`)).status, 404);
-    assert.equal((await fetch(`${s.base}/api/upload/teamphoto?k=${s.key}`, { method: 'POST', body: png })).status, 200);
     assert.equal((await fetch(`${s.base}/assets/teamphoto`)).status, 200);
     assert.equal(ctl.state.teamPhoto ?? (await (await fetch(`${s.base}/api/state`)).json()).teamPhoto, true);
   } finally { ctl.close(); await browser.close(); await s.close(); }

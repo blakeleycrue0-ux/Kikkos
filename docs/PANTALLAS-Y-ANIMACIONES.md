@@ -34,15 +34,16 @@ Para un **vídeo** (no solo logos) se usa OBS: escena `Descanso` con un *Origen 
 No lee comentarios, «me gusta» ni espectadores de Instagram. Lo que se ve es lo que registras tú.
 
 ## Estilo Pro (por defecto) y Estilo Clásico
-En **Emisión → Pantalla sin cámara → Estilo** se elige entre **Pro** (morado profundo con textura, tipografía pesada inclinada, acentos crema y dorado, azulejos angulares) y **Clásico** (lila suave y letra fina). Se cambia con un toque y sin reiniciar.
+En **Emisión → Pantalla sin cámara → Estilo** se elige entre **Pro** y **Clásico** (letra fina). Se cambia con un toque y sin reiniciar. Los dos usan **tu fondo lila y blanco**; el Pro solo usa blanco y lila.
 
 Con el Estilo Pro:
-- **Alineación**: fichas blancas tipo polaroid con la foto, el dorsal y el apellido; suplentes y entrenador debajo.
-- **Gol**: «GOL» gigante con degradado lila a crema y capas fantasma detrás; barra inferior con escudo, minuto, dorsal y nombre; la foto de la goleadora si la hay.
-- **Descanso, final y estadísticas**: título grande, azulejos de marcador, barras de estadísticas de dos colores y el partido minuto a minuto.
+- **Alineación**: «XI INICIAL» y una ficha angular por titular con **dorsal y nombre** (no hace falta ninguna foto individual); suplentes y entrenador debajo.
+- **Gol**: «GOL» gigante en blanco con capas fantasma detrás; barra inferior con escudo, minuto, dorsal y nombre. Si una jugadora tiene foto, sale a un lado; si no, sale el escudo grande.
+- **Descanso, final y cuenta atrás**: título grande, azulejos de marcador y, si has subido la **foto de grupo**, esa foto grande en el centro.
+- **Estadísticas y resumen**: bloques lila con las barras de dos colores y el partido minuto a minuto.
 - **Tarjetas, cambios y gol del rival**: avisos angulares con tarjeta grande.
 
 ## Fotos
-- **Jugadoras**: en **Ajustes → Plantilla**, toca el cuadrado de la izquierda de cada jugadora y elige su foto. Se guarda sola. Sirven fotos normales; si no hay foto sale una silueta con el dorsal.
-- **Foto del equipo**: en **Emisión → Pantalla sin cámara → Subir foto del equipo**. Se ve de fondo en la cuenta atrás, el descanso, la final y la alineación.
-- Las fotos se reducen en el móvil antes de subirse. Quedan en la carpeta `data` del portátil.
+- **Foto de grupo**: en **Emisión → Pantalla sin cámara → Subir foto del equipo**. Funciona mejor un **PNG sin fondo** (recortado). Sale en la cuenta atrás, el descanso y la final. En cada partido puedes cambiarla.
+- **Fotos individuales** (opcional): en **Ajustes → Plantilla**, toca el cuadrado de la izquierda de la jugadora. Solo se usan en la animación de gol y en la jugadora del partido. Sin foto no pasa nada: no se muestra ninguna silueta.
+- Las fotos se reducen en el móvil antes de subirse y se guardan en la carpeta `data` del portátil.
