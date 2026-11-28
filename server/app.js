@@ -83,9 +83,9 @@ export class App extends EventEmitter {
     return m;
   }
 
-  backgroundFile() {
+  backgroundFile(name = 'background') {
     for (const ext of ['png', 'jpg', 'webp']) {
-      const f = path.join(this.store.assetsDir, `background.${ext}`);
+      const f = path.join(this.store.assetsDir, `${name}.${ext}`);
       if (fs.existsSync(f)) return f;
     }
     return null;
@@ -99,9 +99,10 @@ export class App extends EventEmitter {
       match: publicMatch(this.match),
       display: st.display,
       club: { name: st.club.name, short: st.club.short, nextMatch: st.club.nextMatch || '' },
-      squad: { roster: st.roster.map((p) => ({ id: p.id, number: p.number, name: p.name, starter: !!p.starter })), staff: st.staff },
+      squad: { roster: st.roster.map((p) => ({ id: p.id, number: p.number, name: p.name, starter: !!p.starter, photo: p.photo || '' })), staff: st.staff },
       sponsors: st.sponsors.map((x) => ({ id: x.id, url: x.url })),
       strip: st.strip,
+      teamPhoto: !!this.backgroundFile('teamphoto'),
       season: this.seasonStats(),
     };
   }
@@ -190,6 +191,7 @@ export class App extends EventEmitter {
       clips: this.clips.list(),
       clipsDir: this.clips.clipsDir(),
       hasBackground: !!this.backgroundFile(),
+      hasTeamPhoto: !!this.backgroundFile('teamphoto'),
       build: BUILD,
       version: VERSION,
       matches: this.store.listMatches().map(matchSummary).sort((a, b) => b.updatedAt - a.updatedAt),
@@ -323,7 +325,7 @@ export class App extends EventEmitter {
         const { roster, staff } = parseRoster(a.text);
         if (!roster.length) throw new CmdError('invalid', 'No he encontrado jugadoras. Pega líneas como «7  APELLIDOS, NOMBRE».');
         const old = this.settings.roster;
-        this.settings.roster = roster.map((p) => ({ id: old.find((o) => o.number === p.number)?.id || uid(6), ...p }));
+        this.settings.roster = roster.map((p) => { const o = old.find((x) => x.number === p.number); return { ...p, id: o?.id || uid(6), photo: o?.photo || '' }; });
         if (staff.coach || staff.delegate) this.settings.staff = { coach: staff.coach || '', delegate: staff.delegate || '' };
         this.store.saveSettings(this.settings);
         this.broadcastState(now);
@@ -338,6 +340,7 @@ export class App extends EventEmitter {
           name: String(p.name ?? '').trim().slice(0, 40),
           full: String(p.full ?? '').trim().slice(0, 80),
           starter: !!p.starter,
+          photo: /^\/assets\/logos\/[\w.-]+$/.test(String(p.photo)) ? p.photo : '',
         })).filter((p) => p.number && p.name && !seen.has(p.number) && seen.add(p.number));
         if (isObj(a.staff)) this.settings.staff = { coach: String(a.staff.coach ?? '').trim().slice(0, 40), delegate: String(a.staff.delegate ?? '').trim().slice(0, 40) };
         this.store.saveSettings(this.settings);
@@ -418,6 +421,7 @@ export class App extends EventEmitter {
       const d = p.display;
       if (d.mode === 'camera' || d.mode === 'studio') s.display.mode = d.mode;
       if (d.layout === 'h' || d.layout === 'v') s.display.layout = d.layout;
+      if (d.style === 'classic' || d.style === 'pro') s.display.style = d.style;
       for (const lay of ['h', 'v']) {
         for (const side of ['top', 'right', 'bottom', 'left']) {
           const v = d.margins?.[lay]?.[side];

@@ -30,7 +30,7 @@ stage.appendChild(fxEl);
 
 let snaps = [];
 let latestDisplay = null;
-let extras = { squad: { roster: [], staff: {} }, sponsors: [], strip: { enabled: false, seconds: 7, messages: [], sponsors: true }, season: { scorers: [], form: { last: [], streak: null } }, club: {} };
+let extras = { squad: { roster: [], staff: {} }, sponsors: [], strip: { enabled: false, seconds: 7, messages: [], sponsors: true }, season: { scorers: [], form: { last: [], streak: null } }, club: {}, teamPhoto: false };
 let sig = '';
 let prevScore = null;
 let cur = { mode: null, layout: null, screen: null };
@@ -43,7 +43,7 @@ const link = new Link({
     const cut = st.serverTime - 150000;
     while (snaps.length > 1 && snaps[0].t < cut) snaps.shift();
     latestDisplay = st.display;
-    extras = { squad: st.squad, sponsors: st.sponsors, strip: st.strip, season: st.season, club: st.club };
+    extras = { squad: st.squad, sponsors: st.sponsors, strip: st.strip, season: st.season, club: st.club, teamPhoto: st.teamPhoto };
   },
 });
 link.start();
@@ -154,6 +154,24 @@ const formHtml = () => {
   return `<div class="form"><span class="form-l">Últimos partidos</span><span class="fds">${dots}</span>${streak}</div>`;
 };
 
+const surname = (name) => { const w = String(name).trim().split(/\s+/); return (w.length > 1 ? w.slice(1).join(' ') : w[0]).toUpperCase(); };
+const silhouette = '<svg viewBox="0 0 100 110" class="sil"><circle cx="50" cy="38" r="20"/><path d="M12 110c0-26 16-42 38-42s38 16 38 42z"/></svg>';
+const teamPhotoBg = () => (extras.teamPhoto ? '<div class="tp"></div>' : '');
+
+function proLineup(m, layout, strip) {
+  const starters = extras.squad.roster.filter((p) => m.starters.includes(p.id)).sort((a, b) => Number(a.number) - Number(b.number));
+  const subs = extras.squad.roster.filter((p) => !m.starters.includes(p.id)).sort((a, b) => Number(a.number) - Number(b.number));
+  const cards = starters.map((p, i) => `<div class="pc" style="--i:${i}"><div class="pc-ph">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span class="pc-big">${esc(p.number)}</span>${silhouette}`}</div><span class="pc-num">${esc(p.number)}</span><div class="pc-name">${esc(surname(p.name))}</div></div>`).join('')
+    || '<div class="empty">Elige las titulares en Ajustes → Alineación del partido</div>';
+  const club = m.ffspSide === 'home' ? m.home : m.away;
+  return `${teamPhotoBg()}<div class="safe studio sp-lineup pro-lu st-${layout}">
+    <div class="pro-title"><b>XI</b><span>INICIAL</span></div>
+    <div class="lu-main"><div class="lu-cards">${cards}</div>
+      <div class="lu-side">${subs.length ? `<div class="lu-subs"><small>SUPLENTES</small>${subs.map((p) => `<span><i>${esc(p.number)}</i>${esc(surname(p.name))}</span>`).join('')}</div>` : ''}
+      ${extras.squad.staff.coach ? `<div class="lu-coach"><small>ENTRENADOR</small><b>${esc(extras.squad.staff.coach)}</b></div>` : ''}
+      <div class="lu-club">${badge(club, 'b')}</div></div>${strip}</div></div>`;
+}
+
 // ------------------------------------------------------------ pantallas "sin cámara"
 function pitchSvg(layout) {
   const l = 'stroke="#fff" stroke-opacity=".22" stroke-width="3" fill="none"';
@@ -178,9 +196,12 @@ function renderStudio(screen, m, d, score, events, layout) {
   const head = (t) => `<div class="st-live"><span>${t}</span>${testTag(m)}</div>`;
   const strip = stripHtml();
   const cls = `safe studio sp-${screen} st-${layout}`;
+  const pro = d.style === 'pro';
+  const tp = ['prematch', 'halftime', 'final'].includes(screen) ? teamPhotoBg() : '';
+  if (pro && screen === 'lineup') return proLineup(m, layout, strip);
   switch (screen) {
     case 'prematch':
-      return `<div class="${cls}">${head('EN DIRECTO')}<div class="sp-center">${teamsBadges(m)}
+      return `${tp}<div class="${cls}">${head('EN DIRECTO')}<div class="sp-center">${teamsBadges(m)}
         ${m.countdownEndsAt ? cdHtml(m, 'COMIENZA EN') : '<div class="sp-cd"><small>PRÓXIMAMENTE</small><b class="soon">El partido va a empezar</b></div>'}
         ${formHtml()}</div>${strip}</div>`;
     case 'lineup': {
@@ -194,16 +215,16 @@ function renderStudio(screen, m, d, score, events, layout) {
         ${extras.squad.staff.coach ? `<div class="lu-coach"><small>ENTRENADOR</small><b>${esc(extras.squad.staff.coach)}</b></div>` : ''}${strip}</div>`;
     }
     case 'halftime':
-      return `<div class="${cls}">${head('DESCANSO')}
+      return `${tp}<div class="${cls}">${head('DESCANSO')}
         <div class="sp-left">${teamsNums(m, score)}${cdHtml(m, '2ª PARTE EN')}</div>
         <div class="sp-right"><div class="blk-h">Resumen de la primera parte</div><div class="sm">${summaryHtml(m, 'home', 1)}${summaryHtml(m, 'away', 1)}</div>
           <div class="blk-h">Estadísticas</div>${statsHtml(m)}</div>${strip}</div>`;
     case 'final': {
       const mvp = rosterById(m.mvp);
       const next = extras.club.nextMatch;
-      return `<div class="${cls}">${head('FINAL')}
+      return `${tp}<div class="${cls}">${head('FINAL')}
         <div class="sp-left">${teamsNums(m, score)}
-          ${mvp ? `<div class="mvp"><small>JUGADORA DEL PARTIDO</small><b>${esc(mvp.number)} · ${esc(mvp.name)}</b></div>` : ''}
+          ${mvp ? `<div class="mvp">${mvp.photo ? `<img class="mvp-ph" src="${esc(mvp.photo)}" alt="">` : ''}<small>JUGADORA DEL PARTIDO</small><b>${esc(mvp.number)} · ${esc(mvp.name)}</b></div>` : ''}
           ${formHtml()}${next ? `<div class="next"><small>PRÓXIMO PARTIDO</small><b>${esc(next)}</b></div>` : ''}</div>
         <div class="sp-right"><div class="blk-h">Goles y tarjetas</div><div class="sm">${summaryHtml(m, 'home')}${summaryHtml(m, 'away')}</div>
           <div class="blk-h">Estadísticas</div>${statsHtml(m)}<div class="blk-h">El partido minuto a minuto</div>${mapHtml(m)}</div>${strip}</div>`;
@@ -319,6 +340,17 @@ function showGoalFx({ e, match }, display) {
   if (who && season > today) lines.push(`${season} en la temporada`);
   const sp = extras.strip.enabled && extras.sponsors.length ? `<div class="fx-sp"><small>CON EL APOYO DE</small><img src="${esc(extras.sponsors[0].url)}" alt=""></div>` : '';
   const el = document.createElement('div');
+  const pro = display.style === 'pro';
+  if (pro) {
+    const pl = (e.rosterId && rosterById(e.rosterId)) || extras.squad.roster.find((x) => who && x.name === who);
+    const photo = pl?.photo ? `<div class="gx-photo"><img src="${esc(pl.photo)}" alt=""></div>` : '';
+    el.className = 'goalfx pro';
+    el.style.setProperty('--tc', team.color);
+    el.innerHTML = `<div class="gx-bg"></div><div class="gx-ghost g1">GOL</div><div class="gx-ghost g2">GOL</div><div class="gx-ghost g3">GOL</div><div class="gx-col"><div class="gx-word">GOL</div>${photo}
+      <div class="gx-bar"><div class="gx-shield">${badge(team, 'b')}</div><div class="gx-min tnum">${esc(e.minute)}</div><span class="gx-sep"></span>
+        <div class="gx-who">${e.number ? `<b class="gx-num">${esc(e.number)}</b>` : ''}<span class="gx-name">${esc(who || team.name)}</span></div></div>
+      ${lines.length ? `<div class="gx-lines">${lines.map((x) => `<span>${esc(x)}</span>`).join('')}</div>` : ''}${sp}</div>`;
+  } else {
   el.className = 'goalfx';
   el.style.setProperty('--tc', team.color);
   el.innerHTML = `<div class="fx-flash"></div><div class="fx-in">
@@ -327,6 +359,7 @@ function showGoalFx({ e, match }, display) {
     ${who ? `<div class="fx-num">${esc(e.number || '')}</div><div class="fx-name">${esc(who)}</div>` : `<div class="fx-name">${esc(team.name)}</div>`}
     <div class="fx-min tnum">${esc(e.minute)}</div>
     ${lines.length ? `<div class="fx-lines">${lines.map((x) => `<span>${esc(x)}</span>`).join('')}</div>` : ''}${sp}</div>`;
+  }
   fxEl.appendChild(el);
   const ms = Math.max(5000, display.noticeSeconds * 1000);
   setTimeout(() => {
@@ -366,7 +399,7 @@ function tick() {
 
   const key = JSON.stringify([mode, layout, screen, margins, guides, m.home, m.away, m.score, m.name, m.category, m.date, m.isTest, m.starters, m.mvp, !!m.countdownEndsAt,
     events.map((e) => [e.id, e.type, e.team, e.minute, e.voided, e.player, e.number, e.playerIn, e.note]),
-    display.recentEvents, display.whiteLogos, extras.squad, extras.sponsors, extras.strip, extras.club.nextMatch, extras.season,
+    display.recentEvents, display.whiteLogos, display.style, extras.teamPhoto, extras.squad, extras.sponsors, extras.strip, extras.club.nextMatch, extras.season,
     screen === 'halftime' || screen === 'final' || screen === 'stats' ? m.clock.phase : '']);
 
   const changedScreen = cur.mode !== mode || cur.layout !== layout || cur.screen !== screen;
@@ -377,6 +410,7 @@ function tick() {
   }
   document.body.classList.toggle('white-logos', !!display.whiteLogos);
   document.body.classList.toggle('spon-bg', !!extras.strip.whiteBadge);
+  document.body.classList.toggle('style-pro', !camera && display.style === 'pro');
 
   if (key !== sig || changedScreen) {
     sig = key;

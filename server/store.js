@@ -9,12 +9,13 @@ export const DEFAULT_SETTINGS = () => ({
   sessions: [],
   activeMatchId: null,
   club: { name: 'Club Femenino Santa Ponsa', short: 'FFSP', color: '#B9A5F0', logo: '', nextMatch: '' },
-  roster: [], // { id, number, name, full, starter }
+  roster: [], // { id, number, name, full, starter, photo }
   staff: { coach: '', delegate: '' },
   sponsors: [], // { id, url }
   strip: { enabled: false, seconds: 7, messages: [], sponsors: true, whiteBadge: false },
   display: {
     mode: 'camera', // camera | studio  (lo que muestra /live)
+    style: 'pro', // pro | classic  (aspecto de la pantalla sin cámara)
     screen: 'auto', // auto | live | prematch | lineup | halftime | final | stats | sponsors (pantalla sin cámara)
     askScorer: true, // al registrar un gol/tarjeta del club, pregunta qué jugadora
     goalAnim: true, // animación grande de gol en la pantalla sin cámara

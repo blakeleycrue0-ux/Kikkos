@@ -42,8 +42,19 @@ Suplentes
 Entrenador: VIDAL COSTA, PAU
 DEL. Equipo: SERRA PONS, JOANA` });
 for (const [t, c] of [['MARCA', '#1b6e46'], ['BANCO', '#b4551d']]) await ctl.cmd('sponsor.add', { url: await upl(logo(t, c)) });
+await ctl.cmd('settings.update', { patch: { display: { style: process.env.STYLE || 'pro' } } });
 await ctl.cmd('settings.update', { patch: { strip: { enabled: true, messages: ['Sigue al club en @futbolfemeninosantaponsa', 'Comparte el directo'], seconds: 5 } } });
 const rivalLogo = await upl(shield('CE', '#1b6e46'));
+// Retratos de EJEMPLO (siluetas con degradado) para ver las fichas con foto
+const portrait = (i) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 440"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${260 + i * 7} 55% 48%)"/><stop offset="1" stop-color="hsl(${280 + i * 5} 60% 22%)"/></linearGradient></defs><rect width="400" height="440" fill="url(#g)"/><circle cx="200" cy="170" r="78" fill="hsl(${20 + i * 9} 45% 62%)"/><path d="M70 440c0-110 60-170 130-170s130 60 130 170z" fill="hsl(${i * 40} 20% 92%)"/><path d="M120 150c0-60 40-95 85-95s75 30 75 85c-20-35-60-50-100-45-30 4-45 25-60 55z" fill="hsl(${i * 25} 40% 22%)"/></svg>`);
+if (!process.env.NO_PHOTOS) {
+  const cur = ctl.state.squad.roster;
+  const withPhotos = [];
+  for (let i = 0; i < cur.length; i++) withPhotos.push({ ...cur[i], photo: i === 3 ? '' : await upl(portrait(i)) });
+  await ctl.cmd('roster.save', { roster: withPhotos });
+}
+const teamPhoto = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><defs><linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a62ec"/><stop offset="1" stop-color="#3a1a8a"/></linearGradient></defs><rect width="1600" height="900" fill="url(#t)"/>${Array.from({ length: 14 }, (_, k) => `<g transform="translate(${110 + k * 100} ${300 + (k % 2) * 90})"><circle r="46" cy="0" fill="hsl(${20 + k * 11} 45% 62%)"/><rect x="-62" y="46" width="124" height="320" rx="50" fill="hsl(${270 + k * 3} 50% ${32 + (k % 3) * 6}%)"/></g>`).join('')}</svg>`);
+// (la foto del equipo de ejemplo se sube más abajo, convertida a PNG)
 const R = ctl.state.squad.roster;
 const by = (n) => R.find((p) => p.number === n);
 
@@ -54,6 +65,13 @@ await ctl.cmd('clock.countdown', { minutes: 9.9 });
 const prematchId = ctl.state.match.id;
 
 const browser = await chromium.launch();
+if (!process.env.NO_PHOTOS) {
+  const pg = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+  await pg.setContent(`<body style="margin:0">${teamPhoto.toString()}</body>`);
+  const png = await pg.screenshot({ type: 'png' });
+  await pg.close();
+  await fetch(`${base}/api/upload/teamphoto?k=${key}`, { method: 'POST', body: png });
+}
 async function shot(name, url, w, h, pre) {
   const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
   await page.goto(base + url);

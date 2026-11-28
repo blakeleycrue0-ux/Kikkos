@@ -582,7 +582,7 @@ function renderAir() {
     ['Automática (sigue el modo y formato del mando)', `${base}/live`, 'según formato'],
   ];
   const sec = (v) => (v / 1000).toString();
-  const sig = JSON.stringify([d, c.cameraDelayMs, a.port, a.hasBackground]);
+  const sig = JSON.stringify([d, c.cameraDelayMs, a.port, a.hasBackground, a.hasTeamPhoto]);
   if (root.dataset.sig === sig && root.dataset.built) return;
   root.dataset.sig = sig;
   root.dataset.built = '1';
@@ -618,6 +618,9 @@ function renderAir() {
 
     <h2>Pantalla sin cámara</h2>
     <div class="card fields">
+      <div><label class="f">Estilo</label><div class="seg" data-seg="display.style"><button data-v="pro" class="${d.style === 'pro' ? 'on' : ''}">Pro</button><button data-v="classic" class="${d.style !== 'pro' ? 'on' : ''}">Clásico</button></div></div>
+      <div class="logo-pick"><label class="btn sm" style="cursor:pointer">Subir foto del equipo<input type="file" accept="image/*" hidden data-teamphoto></label>
+        ${a.hasTeamPhoto ? '<button class="btn sm ghost" data-teamphotoremove>Quitar foto</button><span class="muted small">Se ve de fondo en la cuenta atrás, el descanso y la final</span>' : '<span class="muted small">Sin foto de equipo</span>'}</div>
       <label class="switch"><span>Animación grande de GOL</span><input type="checkbox" data-set="display.goalAnim" data-type="bool" ${d.goalAnim ? 'checked' : ''}></label>
       <label class="switch"><span>Preguntar qué jugadora tras gol o tarjeta del club</span><input type="checkbox" data-set="display.askScorer" data-type="bool" ${d.askScorer ? 'checked' : ''}></label>
       <label class="switch"><span>Escudos en silueta blanca (pierde los detalles)</span><input type="checkbox" data-set="display.whiteLogos" data-type="bool" ${d.whiteLogos ? 'checked' : ''}></label>
@@ -684,6 +687,22 @@ document.addEventListener('change', async (e) => {
     toast('Fondo actualizado');
     const f = $('#pvf'); if (f) f.src = '/live?guides=1';
   } catch (err) { toast(err.message, { bad: true }); }
+});
+document.addEventListener('change', async (e) => {
+  const inp = e.target.closest('input[data-teamphoto]');
+  if (!inp || !inp.files[0]) return;
+  try {
+    const blob = await prepareImage(inp.files[0], { max: 1920, photo: true });
+    const r = await api('/api/upload/teamphoto', { method: 'POST', body: blob });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'No se pudo subir');
+    toast('Foto del equipo guardada');
+  } catch (err) { toast(err.message, { bad: true }); }
+});
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest('[data-teamphotoremove]')) return;
+  await api('/api/teamphoto/remove', { method: 'POST' });
+  toast('Foto del equipo quitada');
 });
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('[data-bgremove]')) return;
@@ -813,7 +832,7 @@ function renderMore() {
 }
 
 function rosterBody(st) {
-  const row = (p) => `<div class="ro-row" data-rid="${esc(p.id || '')}" data-full="${esc(p.full || '')}"><input class="ro-n" type="text" inputmode="numeric" maxlength="3" value="${esc(p.number)}" aria-label="Dorsal"><input class="ro-name" type="text" maxlength="40" value="${esc(p.name)}" aria-label="Nombre"><label class="ro-s"><input type="checkbox" ${p.starter ? 'checked' : ''}><span>Tit.</span></label><button class="btn sm danger" data-more="roDel">×</button></div>`;
+  const row = (p) => `<div class="ro-row" data-rid="${esc(p.id || '')}" data-full="${esc(p.full || '')}" data-photo="${esc(p.photo || '')}"><label class="ro-ph" title="Foto">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : '<span>+</span>'}<input type="file" accept="image/*" hidden data-pphoto></label><input class="ro-n" type="text" inputmode="numeric" maxlength="3" value="${esc(p.number)}" aria-label="Dorsal"><input class="ro-name" type="text" maxlength="40" value="${esc(p.name)}" aria-label="Nombre"><label class="ro-s"><input type="checkbox" ${p.starter ? 'checked' : ''}><span>Tit.</span></label><button class="btn sm danger" data-more="roDel">×</button></div>`;
   return `<div class="muted small">Pega la lista del acta («7  APELLIDOS, NOMBRE»; bajo «Titulares» y «Suplentes»; «Entrenador:» y «DEL. Equipo:»). Importar reemplaza la plantilla actual.</div>
     <textarea id="rText" placeholder="Titulares&#10;1 APELLIDOS, NOMBRE&#10;...&#10;Suplentes&#10;4 APELLIDOS, NOMBRE"></textarea>
     <button class="btn primary block" data-more="rosterImport">Importar plantilla</button>
@@ -821,7 +840,7 @@ function rosterBody(st) {
     <button class="btn block" data-more="roAdd">Añadir jugadora</button>
     <div class="fields two"><div><label class="f">Entrenador/a</label><input type="text" id="rCoach" maxlength="40" value="${esc(st.staff.coach)}"></div><div><label class="f">Delegado/a</label><input type="text" id="rDel" maxlength="40" value="${esc(st.staff.delegate)}"></div></div>
     <button class="btn primary block" data-more="roSave">Guardar plantilla</button>
-    <div class="muted small">«Tit.» marca quién empieza de titular por defecto en los partidos nuevos. Los nombres se muestran tal cual los escribas aquí.</div>`;
+    <div class="muted small">Toca el cuadrado de la izquierda para poner la foto de cada jugadora (se usa en la alineación, en el gol y en la jugadora del partido). «Tit.» marca quién empieza de titular por defecto en los partidos nuevos. Los nombres se muestran tal cual los escribas aquí.</div>`;
 }
 
 function lineupBody(st, mt) {
@@ -844,19 +863,36 @@ function sponsBody(st) {
     <div class="muted small">La cinta sale en la pantalla sin cámara (marcador, descanso, final…). Con un logo, también aparece «con el apoyo de» en la animación de gol.</div>`;
 }
 
-async function prepareImage(file) {
+async function prepareImage(file, { max = 512, photo = false } = {}) {
   if (file.type === 'image/svg+xml') return file;
   const bmp = await createImageBitmap(file);
-  const k = Math.min(1, 512 / Math.max(bmp.width, bmp.height));
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  return new Promise((res) => c.toBlob(res, 'image/png'));
+  // Logos y recortes con transparencia: PNG. Fotos normales: JPG (pesan menos).
+  const png = !photo || file.type === 'image/png';
+  return new Promise((res) => c.toBlob(res, png ? 'image/png' : 'image/jpeg', 0.88));
 }
 
 $('#tab-more').addEventListener('change', async (e) => {
   if (e.target.id === 'lanSel') { lanIdx = Number(e.target.value); $('#tab-more').dataset.sig = ''; renderMore(); return; }
   if (e.target.id === 'nPreset' && e.target.value) { $('#nD1').value = e.target.value; $('#nD2').value = e.target.value; return; }
+  const pp = e.target.closest('input[data-pphoto]');
+  if (pp && pp.files[0]) {
+    const rowEl = pp.closest('.ro-row');
+    try {
+      const blob = await prepareImage(pp.files[0], { max: 900, photo: true });
+      const r = await api('/api/upload/logo', { method: 'POST', body: blob });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'No se pudo subir');
+      rowEl.dataset.photo = j.url;
+      rowEl.querySelector('.ro-ph').innerHTML = `<img src="${j.url}" alt=""><input type="file" accept="image/*" hidden data-pphoto>`;
+      const roster = $$('#roList .ro-row').map((x) => ({ id: x.dataset.rid || undefined, full: x.dataset.full || '', photo: x.dataset.photo || '', number: x.querySelector('.ro-n').value, name: x.querySelector('.ro-name').value, starter: x.querySelector('.ro-s input').checked }));
+      act('roster.save', { roster, staff: { coach: $('#rCoach')?.value ?? '', delegate: $('#rDel')?.value ?? '' } }, 'Foto guardada');
+    } catch (err) { toast(err.message, { bad: true }); }
+    return;
+  }
   const sp = e.target.closest('input[data-sponsor]');
   if (sp && sp.files[0]) {
     try {
@@ -911,14 +947,14 @@ $('#tab-more').addEventListener('click', (e) => {
     case 'roAdd': {
       const d = document.createElement('div');
       d.className = 'ro-row';
-      d.innerHTML = '<input class="ro-n" type="text" inputmode="numeric" maxlength="3" placeholder="Nº"><input class="ro-name" type="text" maxlength="40" placeholder="Nombre"><label class="ro-s"><input type="checkbox"><span>Tit.</span></label><button class="btn sm danger" data-more="roDel">×</button>';
+      d.innerHTML = '<label class="ro-ph" title="Foto"><span>+</span><input type="file" accept="image/*" hidden data-pphoto></label><input class="ro-n" type="text" inputmode="numeric" maxlength="3" placeholder="Nº"><input class="ro-name" type="text" maxlength="40" placeholder="Nombre"><label class="ro-s"><input type="checkbox"><span>Tit.</span></label><button class="btn sm danger" data-more="roDel">×</button>';
       $('#roList').appendChild(d);
       d.querySelector('.ro-n').focus();
       break;
     }
     case 'roDel': b.closest('.ro-row').remove(); break;
     case 'roSave': {
-      const roster = $$('#roList .ro-row').map((r) => ({ id: r.dataset.rid || undefined, full: r.dataset.full || '', number: r.querySelector('.ro-n').value, name: r.querySelector('.ro-name').value, starter: r.querySelector('.ro-s input').checked }));
+      const roster = $$('#roList .ro-row').map((r) => ({ id: r.dataset.rid || undefined, full: r.dataset.full || '', photo: r.dataset.photo || '', number: r.querySelector('.ro-n').value, name: r.querySelector('.ro-name').value, starter: r.querySelector('.ro-s input').checked }));
       act('roster.save', { roster, staff: { coach: v('rCoach'), delegate: v('rDel') } }, 'Plantilla guardada');
       break;
     }

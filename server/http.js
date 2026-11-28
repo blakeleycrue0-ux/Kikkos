@@ -96,9 +96,9 @@ function sniffImage(b) {
   return null;
 }
 
-function clearBackground(app) {
+function clearBackground(app, name = 'background') {
   for (const ext of ['png', 'jpg', 'webp']) {
-    try { fs.unlinkSync(path.join(app.store.assetsDir, `background.${ext}`)); } catch { /* */ }
+    try { fs.unlinkSync(path.join(app.store.assetsDir, `${name}.${ext}`)); } catch { /* */ }
   }
 }
 
@@ -174,18 +174,19 @@ export function createRequestHandler(app) {
           return send(res, 200, { ok: true, url: `/assets/logos/${name}` });
         }
 
-        if (p === '/api/upload/background' && req.method === 'POST') {
+        let am;
+        if ((am = /^\/api\/upload\/(background|teamphoto)$/.exec(p)) && req.method === 'POST') {
           const buf = await readBody(req, 15 * 1024 * 1024);
           const kind = sniffImage(buf);
           if (!kind || kind === 'svg') return send(res, 415, { ok: false, error: 'Usa una imagen PNG, JPG o WEBP (si tienes un PDF, expórtalo a imagen)' });
-          clearBackground(app);
-          fs.writeFileSync(path.join(app.store.assetsDir, `background.${kind}`), buf);
-          app.scheduleAdmin();
+          clearBackground(app, am[1]);
+          fs.writeFileSync(path.join(app.store.assetsDir, `${am[1]}.${kind}`), buf);
+          app.broadcastState();
           return send(res, 200, { ok: true });
         }
-        if (p === '/api/background/remove' && req.method === 'POST') {
-          clearBackground(app);
-          app.scheduleAdmin();
+        if ((am = /^\/api\/(background|teamphoto)\/remove$/.exec(p)) && req.method === 'POST') {
+          clearBackground(app, am[1]);
+          app.broadcastState();
           return send(res, 200, { ok: true });
         }
 
@@ -216,8 +217,8 @@ export function createRequestHandler(app) {
           extra: { 'Cache-Control': 'public, max-age=3600', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox" },
         });
       }
-      if (p === '/assets/background') {
-        const f = app.backgroundFile();
+      if (p === '/assets/background' || p === '/assets/teamphoto') {
+        const f = app.backgroundFile(p.split('/').pop());
         if (!f) return send(res, 404, 'Sin fondo');
         return serveFile(req, res, f, { extra: { 'Cache-Control': 'no-cache', 'Content-Security-Policy': "default-src 'none'; sandbox" } });
       }

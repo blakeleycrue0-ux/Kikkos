@@ -32,3 +32,17 @@ Para un **vídeo** (no solo logos) se usa OBS: escena `Descanso` con un *Origen 
 
 ## Lo que no hace
 No lee comentarios, «me gusta» ni espectadores de Instagram. Lo que se ve es lo que registras tú.
+
+## Estilo Pro (por defecto) y Estilo Clásico
+En **Emisión → Pantalla sin cámara → Estilo** se elige entre **Pro** (morado profundo con textura, tipografía pesada inclinada, acentos crema y dorado, azulejos angulares) y **Clásico** (lila suave y letra fina). Se cambia con un toque y sin reiniciar.
+
+Con el Estilo Pro:
+- **Alineación**: fichas blancas tipo polaroid con la foto, el dorsal y el apellido; suplentes y entrenador debajo.
+- **Gol**: «GOL» gigante con degradado lila a crema y capas fantasma detrás; barra inferior con escudo, minuto, dorsal y nombre; la foto de la goleadora si la hay.
+- **Descanso, final y estadísticas**: título grande, azulejos de marcador, barras de estadísticas de dos colores y el partido minuto a minuto.
+- **Tarjetas, cambios y gol del rival**: avisos angulares con tarjeta grande.
+
+## Fotos
+- **Jugadoras**: en **Ajustes → Plantilla**, toca el cuadrado de la izquierda de cada jugadora y elige su foto. Se guarda sola. Sirven fotos normales; si no hay foto sale una silueta con el dorsal.
+- **Foto del equipo**: en **Emisión → Pantalla sin cámara → Subir foto del equipo**. Se ve de fondo en la cuenta atrás, el descanso, la final y la alineación.
+- Las fotos se reducen en el móvil antes de subirse. Quedan en la carpeta `data` del portátil.

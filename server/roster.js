@@ -40,7 +40,7 @@ export function parseRoster(text) {
       if (seen.has(number)) continue;
       seen.add(number);
       const full = m[2].replace(/[×✕✖]/g, '').trim().toUpperCase();
-      roster.push({ number, full, name: displayName(full), starter: section === 'starter' });
+      roster.push({ number, full, name: displayName(full), starter: section === 'starter', photo: '' });
     }
   }
   roster.sort((a, b) => Number(a.number) - Number(b.number));
