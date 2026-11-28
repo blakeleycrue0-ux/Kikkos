@@ -166,7 +166,7 @@ body.white-logos .studio .badge img { filter: brightness(0) invert(1) drop-shado
 .studio .tl-txt small { font: 300 21px/1.1 var(--font-ui); opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em; }
 .studio .tl-row.voided .tl-txt b, .studio .tl-row.voided .tl-min { text-decoration: line-through; opacity: .6; }
 .studio .empty { padding: 20px 0 0 40px; font: 300 26px var(--font-ui); opacity: .85; }
-.studio .ico.ico-card { width: .7em; }
+.studio .ico.ico-card { width: .62em; }
 
 /* Vertical 1080x1920 */
 .studio.st-v.st-live-screen { display: flex; flex-direction: column; gap: 26px; }
@@ -333,3 +333,33 @@ body.spon-bg .studio .rot-i.logo.big img { padding: 24px 56px; border-radius: 22
 #view.enter .strip, #view.enter .map { animation: rise .6s .6s both; }
 @keyframes pop2 { 0% { opacity: 0; transform: translateY(40px) scale(.7); } 100% { opacity: 1; transform: none; } }
 @keyframes slidein { from { opacity: 0; transform: translateX(-60px); } to { opacity: 1; transform: none; } }
+
+/* ===== Cinta continua (patrocinadores y mensajes) ===== */
+.studio .strip { height: 100px; }
+.studio .strip .mq { height: 100%; display: flex; align-items: center; }
+.mq { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+.mq-track { display: flex; align-items: center; width: max-content; animation: mq var(--dur) linear infinite; animation-delay: var(--delay); animation-direction: var(--dir); }
+.mq-i { flex: none; margin-right: 80px; display: flex; align-items: center; }
+@keyframes mq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.mq-i.logo img { height: 76px; width: auto; max-width: 300px; object-fit: contain; filter: drop-shadow(0 2px 10px rgba(50,20,130,.25)); }
+.mq-i.logo.big img { height: 108px; max-width: 360px; }
+.mq-i.msg { font: 300 34px/1 var(--font-ui); letter-spacing: .04em; white-space: nowrap; }
+body.spon-bg .mq-i.logo img { background: rgba(255,255,255,.92); padding: 8px 22px; border-radius: 12px; filter: none; }
+
+/* Página de patrocinadores: foto y tres cintas que giran en sentidos opuestos */
+.studio.sp-sponsors { display: flex; flex-direction: column; gap: 30px; }
+.studio.sp-sponsors .hero { min-height: 340px; }
+.spons-rows { flex: none; display: flex; flex-direction: column; gap: 22px; }
+.mq-row { height: 148px; display: flex; align-items: center; background: rgba(255,255,255,.2); }
+.studio.sp-sponsors.st-h { display: grid; grid-template-columns: 1fr 1.1fr; grid-template-rows: auto 1fr; column-gap: 60px; }
+.studio.sp-sponsors.st-h .st-live { grid-column: 1 / -1; }
+.studio.sp-sponsors.st-h .hero { grid-column: 1; }
+.studio.sp-sponsors.st-h .spons-rows { grid-column: 2; align-self: center; }
+
+/* Goles agrupados por jugadora y línea del partido */
+.gl .gl-row { display: flex; align-items: center; gap: 14px; height: 46px; font: 600 26px/1 var(--font-ui); }
+.gl .gl-ico { display: flex; font-size: 30px; }
+.gl .gl-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gl .gl-min { font: 400 24px/1 var(--font-sport); letter-spacing: .04em; }
+.studio .map .mt { fill: #fff; font: 600 26px var(--font-ui); }
+.studio .map .ml { fill: #fff; font: 700 28px var(--font-ui); letter-spacing: .08em; }

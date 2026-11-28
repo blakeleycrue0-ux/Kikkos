@@ -54,7 +54,9 @@ test('plantilla, alineación y cuenta atrás en el servidor; goles con jugadora 
   assert.equal((await ctl.cmd('clock.countdown', { minutes: 999 })).ok, false);
   await ctl.cmd('clock.start1');
   assert.equal(ctl.state.match.countdownEndsAt, 0);
-  assert.equal((await ctl.cmd('clock.countdown', { minutes: 5 })).ok, false, 'no durante la parte');
+  assert.equal((await ctl.cmd('clock.countdown', { minutes: 5 })).ok, true, 'la cuenta atrás se puede poner en cualquier momento');
+  assert.equal((await ctl.cmd('clock.countdown', { minutes: 7.5 })).ok, true, 'admite decimales');
+  await ctl.cmd('clock.countdown', { minutes: 0 });
 
   // gol del club: queda pendiente de la jugadora; al asignarla deja de estar pendiente
   const g = await ctl.cmd('event.add', { type: 'goal', team: ctl.state.match.ffspSide, awaiting: true });

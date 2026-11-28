@@ -1,6 +1,6 @@
 // Pantalla de emisión (solo lectura): "con cámara" (fondo transparente) o "sin cámara" (fondo lila).
 // Rutas: /overlay/h /overlay/v /studio/h /studio/v  ·  /live (sigue el modo elegido en el mando)
-import { $, esc, clockMs, fmtClock, PHASE_LABEL, TYPE_LABEL, TYPE_NOTICE, addedInfo, badge, icon, eventDetail, Link } from './common.js';
+import { $, esc, clockMs, fmtClock, PHASE_LABEL, TYPE_LABEL, TYPE_NOTICE, addedInfo, badge, icon, eventDetail, Link, BALL_INNER } from './common.js';
 
 const q = new URLSearchParams(location.search);
 const pm = /^\/(overlay|studio)(?:\/(h|v))?\/?$/.exec(location.pathname);
@@ -89,13 +89,25 @@ const teamsNums = (m, score) => `<div class="st-teams">${['home', 'away'].map((s
 const teamsBadges = (m) => `<div class="st-teams vs">${badge(m.home, 'b')}<span class="vs-t">VS</span>${badge(m.away, 'b')}</div>`;
 
 /** Cinta rotatoria: mensajes del club y logos de patrocinadores. */
+/** Cinta continua: los elementos pasan de lado a lado y vuelven a entrar, sin parar (como un bucle). */
+function marquee(entries, minWidth, { dir = 1, speed = 90, cls = '' } = {}) {
+  const set = entries.map((e) => e.html).join('');
+  const setW = entries.reduce((a, e) => a + e.w + 80, 0);
+  const reps = Math.max(1, Math.ceil(minWidth / setW));
+  const half = set.repeat(reps);
+  const dur = Math.max(12, (setW * reps) / speed);
+  const delay = -((link.now() / 1000) % dur); // la cinta no se reinicia al repintar
+  return `<div class="mq ${cls}" style="--dur:${dur.toFixed(1)}s;--delay:${delay.toFixed(2)}s;--dir:${dir < 0 ? 'reverse' : 'normal'}"><div class="mq-track">${half}${half}</div></div>`;
+}
+const logoEntry = (x, big = false) => ({ w: big ? 340 : 260, html: `<span class="mq-i logo ${big ? 'big' : ''}"><img src="${esc(x.url)}" alt=""></span>` });
+
 function stripHtml() {
   const s = extras.strip;
   if (!s.enabled) return '';
-  const items = [...s.messages.map((t) => `<div class="rot-i msg">${esc(t)}</div>`),
-    ...(s.sponsors ? extras.sponsors.map((x) => `<div class="rot-i logo"><img src="${esc(x.url)}" alt=""></div>`) : [])];
-  if (!items.length) return '';
-  return `<div class="strip"><div class="rot" data-s="${s.seconds}">${items.join('')}</div></div>`;
+  const entries = [...s.messages.map((t) => ({ w: 60 + t.length * 24, html: `<span class="mq-i msg">${esc(t)}</span>` })),
+    ...(s.sponsors ? extras.sponsors.map((x) => logoEntry(x)) : [])];
+  if (!entries.length) return '';
+  return `<div class="strip">${marquee(entries, 1000, { speed: s.seconds ? 700 / s.seconds : 90 })}</div>`;
 }
 
 /** Estadísticas comparadas por equipo (sin contar eventos anulados). */
@@ -118,20 +130,44 @@ function statsHtml(m) {
 }
 
 /** Línea de 90 minutos con los goles y las tarjetas de cada equipo. */
+/** Línea del partido: balones y tarjetas del mismo tamaño, goles del club arriba y del rival abajo. */
 function mapHtml(m) {
   const total = m.durations[0] + m.durations[1];
-  const x = (e) => Math.min(985, Math.max(15, (e.matchMs / 60000 / total) * 1000));
-  const dots = m.events.filter((e) => !e.voided && e.team && ['goal', 'yellow', 'red'].includes(e.type)).map((e) => {
-    const y = e.team === 'home' ? 34 : 116;
-    if (e.type === 'goal') return `<circle cx="${x(e)}" cy="${y}" r="14" fill="#fff"/>`;
-    return `<rect x="${x(e) - 8}" y="${y - 12}" width="16" height="24" rx="3" fill="${e.type === 'yellow' ? '#f4d03f' : '#e5484d'}"/>`;
-  }).join('');
+  const x = (e) => Math.min(965, Math.max(35, (e.matchMs / 60000 / total) * 1000));
   const half = (m.durations[0] / total) * 1000;
-  return `<svg class="map" viewBox="-110 0 1110 160" preserveAspectRatio="xMidYMid meet">
-    <line x1="0" y1="75" x2="1000" y2="75" stroke="#fff" stroke-opacity=".8" stroke-width="2"/>
-    <line x1="${half}" y1="58" x2="${half}" y2="92" stroke="#fff" stroke-opacity=".8" stroke-width="2"/>
-    <text x="2" y="104" class="mt">0'</text><text x="${half}" y="108" class="mt" text-anchor="middle">${m.durations[0]}'</text><text x="998" y="104" class="mt" text-anchor="end">${total}'</text>
-    <text x="-108" y="44" class="ml">${esc(m.home.short)}</text><text x="-108" y="132" class="ml">${esc(m.away.short)}</text>${dots}</svg>`;
+  const ev = m.events.filter((e) => !e.voided && e.team && ['goal', 'yellow', 'red'].includes(e.type));
+  const mark = (e) => {
+    const up = e.team === m.ffspSide;
+    const y = up ? 60 : 160;
+    const px = x(e);
+    const icon = e.type === 'goal'
+      ? `<g transform="translate(${px - 19} ${y - 19}) scale(1.58)">${BALL_INNER}</g>`
+      : `<rect x="${px - 12}" y="${y - 17}" width="24" height="34" rx="4.5" fill="${e.type === 'yellow' ? '#f4d03f' : '#e5484d'}" stroke="#fff" stroke-width="2.5"/>`;
+    const mn = `<text x="${px}" y="${up ? y - 28 : y + 46}" text-anchor="middle" class="mt">${parseInt(e.minute, 10)}'</text>`;
+    return icon + mn;
+  };
+  const club = m[m.ffspSide];
+  const rival = m[m.ffspSide === 'home' ? 'away' : 'home'];
+  return `<svg class="map" viewBox="-110 0 1110 220" preserveAspectRatio="xMidYMid meet">
+    <line x1="0" y1="110" x2="1000" y2="110" stroke="#fff" stroke-width="3"/>
+    <line x1="${half}" y1="92" x2="${half}" y2="128" stroke="#fff" stroke-width="3"/>
+    <text x="0" y="145" class="mt" text-anchor="start">0'</text><text x="${half}" y="152" class="mt" text-anchor="middle">${m.durations[0]}'</text><text x="1000" y="145" class="mt" text-anchor="end">${total}'</text>
+    <text x="-106" y="70" class="ml">${esc(club.short)}</text><text x="-106" y="170" class="ml">${esc(rival.short)}</text>${ev.map(mark).join('')}</svg>`;
+}
+
+/** Goleadoras agrupadas: «Marta Ferrer  7' · 38'» bajo cada equipo. */
+function goalsHtml(m, side) {
+  const goals = m.events.filter((e) => !e.voided && e.type === 'goal' && e.team === side).sort((a, b) => a.matchMs - b.matchMs);
+  const by = new Map();
+  for (const e of goals) {
+    const k = e.player ? `${e.number || ''}|${e.player}` : `_${e.id}`;
+    const g = by.get(k) || { name: e.player || 'Gol', number: e.number, mins: [] };
+    g.mins.push(e.minute);
+    by.set(k, g);
+  }
+  const rows = [...by.values()].map((g) => `<div class="gl-row"><span class="gl-ico">${icon('goal')}</span><span class="gl-name">${esc([g.number, g.name].filter(Boolean).join(' '))}</span><span class="gl-min tnum">${g.mins.map(esc).join(' · ')}</span></div>`).join('')
+    || '<div class="sm-empty">—</div>';
+  return `<div class="sm-col"><div class="sm-h">${badge(m[side], 'b')}<b>${esc(m[side].short)}</b></div>${rows}</div>`;
 }
 
 /** Resumen de goles y tarjetas (con jugadora) de un equipo. */
@@ -203,16 +239,44 @@ function cdHtml(m, label) {
   return `<div class="sp-cd"><small>${label}</small><b class="cdv tnum">00:00</b></div>`;
 }
 
+const TICKER_S = 60; // los eventos se quedan en el marcador un minuto y luego se van
+const TICKER_MS = TICKER_S * 1000;
+
+function tickRow(e, match, now) {
+  const { team, text } = eventDetail(e, match);
+  const who = [e.number, e.player].filter(Boolean).join(' ');
+  const main = e.type === 'sub' ? (text || TYPE_LABEL.sub) : (who || `${TYPE_LABEL[e.type]}${team ? ' ' + team.short : ''}`);
+  const age = Math.max(0, (now - e.realAt) / 1000);
+  const delay = Math.max(0, TICKER_S - 0.7 - age).toFixed(1);
+  return `<div class="tk t-${e.type} ${age < 2.5 ? 'fresh' : ''}" style="--d:${delay}s"><span class="tk-min tnum">${esc(e.minute)}</span><span class="tk-ico">${icon(e.type)}</span><span class="tk-txt">${esc(main)}</span><span class="tk-tm">${esc(team ? team.short : '')}</span></div>`;
+}
+
+/** Pantalla en directo (Estilo Pro): marcador compacto, foto grande y los últimos eventos, que entran y se van solos. */
+function liveProHtml(m, score, events, layout, strip) {
+  const now = link.now();
+  const photos = extras.photos.filter((x) => x.tag === 'general');
+  const recent = events.filter((e) => !e.voided && now - e.realAt < TICKER_MS).slice(0, photos.length ? 3 : 6);
+  const crest = (t) => `<div class="lv-crest">${badge(t, 'b')}</div>`;
+  return `<div class="safe studio sp-live pro-live st-${layout} ${photos.length ? 'has-stage' : ''}">
+    ${m.isTest ? `<div class="lv-test">${testTag(m)}</div>` : ''}
+    <div class="lv-score">${crest(m.home)}<b class="num sc sc-h">${score.home}</b><i class="lv-dash"></i><b class="num sc sc-a">${score.away}</b>${crest(m.away)}</div>
+    <div class="lv-clock"><b class="cl tnum">00:00</b><span class="ph"></span><em class="ad"></em></div>
+    ${photos.length ? `<div class="lv-stage"><div class="rot" data-s="14">${photos.map((x) => `<div class="rot-i"><img src="${esc(x.url)}" alt=""></div>`).join('')}</div></div>` : ''}
+    <div class="lv-tick">${recent.map((e) => tickRow(e, m, now)).join('')}</div>
+    ${strip}
+  </div>`;
+}
+
 function renderStudio(screen, m, d, score, events, layout) {
-  const head = (t) => `<div class="st-live"><span>${t}</span>${testTag(m)}</div>`;
+  const head = (t) => (t ? `<div class="st-live"><span>${t}</span>${testTag(m)}</div>` : (m.isTest ? `<div class="st-live st-live-test">${testTag(m)}</div>` : ''));
   const strip = stripHtml();
   const cls = `safe studio sp-${screen} st-${layout}`;
   const pro = d.style === 'pro';
-  const hero = ['prematch', 'halftime', 'final'].includes(screen) ? heroHtml() : '';
+  const hero = ['prematch', 'halftime', 'final', 'sponsors'].includes(screen) ? heroHtml() : '';
   if (pro && screen === 'lineup') return proLineup(m, layout, strip);
   switch (screen) {
     case 'prematch':
-      return `<div class="${cls}">${head('EN DIRECTO')}<div class="sp-center">${hero}${teamsBadges(m)}
+      return `<div class="${cls}">${head('')}<div class="sp-center">${hero}${teamsBadges(m)}
         ${m.countdownEndsAt ? cdHtml(m, 'COMIENZA EN') : '<div class="sp-cd"><small>PRÓXIMAMENTE</small><b class="soon">El partido va a empezar</b></div>'}
         ${formHtml()}</div>${strip}</div>`;
     case 'lineup': {
@@ -228,8 +292,7 @@ function renderStudio(screen, m, d, score, events, layout) {
     case 'halftime':
       return `<div class="${cls}">${head('DESCANSO')}
         <div class="sp-left">${teamsNums(m, score)}${cdHtml(m, '2ª PARTE EN')}</div>
-        <div class="sp-right ${hero ? 'has-hero' : ''}">${hero}<div class="blk-h">Resumen de la primera parte</div><div class="sm">${summaryHtml(m, 'home', 1)}${summaryHtml(m, 'away', 1)}</div>
-          ${hero ? '' : `<div class="blk-h">Estadísticas</div>${statsHtml(m)}`}</div>${strip}</div>`;
+        <div class="sp-right ${hero ? 'has-hero' : ''}">${hero}<div class="blk-h">Estadísticas</div>${statsHtml(m)}</div>${strip}</div>`;
     case 'final': {
       const mvp = rosterById(m.mvp);
       const next = extras.club.nextMatch;
@@ -237,25 +300,26 @@ function renderStudio(screen, m, d, score, events, layout) {
         <div class="sp-left">${teamsNums(m, score)}
           ${mvp ? `<div class="mvp">${mvp.photo ? `<img class="mvp-ph" src="${esc(mvp.photo)}" alt="">` : ''}<small>JUGADORA DEL PARTIDO</small><b>${esc(mvp.number)} · ${esc(mvp.name)}</b></div>` : ''}
           ${formHtml()}${next ? `<div class="next"><small>PRÓXIMO PARTIDO</small><b>${esc(next)}</b></div>` : ''}</div>
-        <div class="sp-right ${hero ? 'has-hero' : ''}">${hero}<div class="blk-h">Goles y tarjetas</div><div class="sm">${summaryHtml(m, 'home')}${summaryHtml(m, 'away')}</div>
-          ${hero ? '' : `<div class="blk-h">Estadísticas</div>${statsHtml(m)}<div class="blk-h">El partido minuto a minuto</div>${mapHtml(m)}`}</div>${strip}</div>`;
+        <div class="sp-right ${hero ? 'has-hero' : ''}">${hero}<div class="blk-h">Goles</div><div class="sm gl">${goalsHtml(m, 'home')}${goalsHtml(m, 'away')}</div>
+          ${hero ? '' : `<div class="blk-h">Estadísticas</div>${statsHtml(m)}`}<div class="blk-h">El partido</div>${mapHtml(m)}</div>${strip}</div>`;
     }
     case 'stats':
       return `<div class="${cls}">${head('ESTADÍSTICAS')}
         <div class="sp-left">${teamsNums(m, score)}${clockHtml()}</div>
-        <div class="sp-right">${statsHtml(m)}<div class="blk-h">El partido minuto a minuto</div>${mapHtml(m)}</div>${strip}</div>`;
+        <div class="sp-right">${statsHtml(m)}<div class="blk-h">El partido</div>${mapHtml(m)}</div>${strip}</div>`;
     case 'sponsors': {
-      const s = extras.strip;
-      const items = [...extras.sponsors.map((x) => `<div class="rot-i logo big"><img src="${esc(x.url)}" alt=""></div>`),
-        ...s.messages.map((t) => `<div class="rot-i msg">${esc(t)}</div>`)];
-      return `<div class="${cls}">${head('GRACIAS')}<div class="sp-center"><div class="thanks">A NUESTROS PATROCINADORES</div>
-        <div class="rot big" data-s="${s.seconds}">${items.join('') || '<div class="rot-i msg on">Gracias por acompañarnos</div>'}</div>
-        <div class="mini-score">${esc(m.home.short)} <b>${score.home}</b> – <b>${score.away}</b> ${esc(m.away.short)}</div></div></div>`;
+      const logos = extras.sponsors.map((x) => logoEntry(x, true));
+      const rot = (a, k) => a.slice(k % Math.max(1, a.length)).concat(a.slice(0, k % Math.max(1, a.length)));
+      const rows = logos.length
+        ? [0, 1, 2].map((i) => marquee(rot(logos, i * 2), 1000, { dir: i % 2 ? -1 : 1, speed: 60 + i * 14, cls: 'mq-row' })).join('')
+        : '<div class="empty">Sube los logos en Ajustes → Patrocinadores y cinta</div>';
+      return `<div class="${cls}">${head('PATROCINADORES')}${hero}<div class="spons-rows">${rows}</div></div>`;
     }
     default: { // live
+      if (pro) return liveProHtml(m, score, events, layout, strip);
       const rows = events.slice(0, 40).map((e) => tlRow(e, m)).join('') || '<div class="empty">Todavía no hay eventos</div>';
       return `<div class="${cls} st-live-screen">
-        <div class="st-main">${head('EN DIRECTO')}${teamsNums(m, score)}
+        <div class="st-main">${head('')}${teamsNums(m, score)}
           <div class="st-clock"><b class="cl tnum">00:00</b><span class="ph"></span><em class="ad"></em></div>${strip}</div>
         <div class="timeline"><div class="tl-line"></div>${rows}</div></div>`;
     }
@@ -325,6 +389,7 @@ function showNext(display) {
   if (!item) { showing = false; return; }
   showing = true;
   if (item.goalfx) return showGoalFx(item, display);
+  if (document.body.classList.contains('style-pro')) return showProNotice(item, display);
   const { e, match, voided } = item;
   const { team, text } = eventDetail(e, match);
   const title = voided ? 'GOL ANULADO' : TYPE_NOTICE[e.type];
@@ -339,6 +404,31 @@ function showNext(display) {
   setTimeout(() => {
     el.classList.add('out');
     setTimeout(() => { el.remove(); showNext(display); }, 450);
+  }, secs * 1000);
+}
+
+function showProNotice({ e, match, voided }, display) {
+  const team = e.team ? match[e.team] : null;
+  const who = [e.number, e.player].filter(Boolean).join(' ');
+  const el = document.createElement('div');
+  el.className = `nfx t-${e.type} ${voided ? 'voided' : ''}`;
+  el.style.setProperty('--tc', team?.color || '#ffffff');
+  const title = voided ? 'GOL ANULADO' : ({ goal: 'GOL', foul: 'FALTA', yellow: 'TARJETA AMARILLA', red: 'TARJETA ROJA', sub: 'CAMBIO', play: 'JUGADA' }[e.type] || '');
+  let lead = '';
+  if (e.type === 'yellow' || e.type === 'red') lead = `<div class="nfx-card"><i></i></div>`;
+  else if (team) lead = `<div class="nfx-crest">${badge(team, 'b')}</div>`;
+  let body;
+  if (e.type === 'sub') {
+    body = `<div class="nfx-sub"><span class="out"><i>↓</i><small>SALE</small>${esc([e.number, e.player].filter(Boolean).join(' ') || '—')}</span>${e.playerIn ? `<span class="in"><i>↑</i><small>ENTRA</small>${esc(e.playerIn)}</span>` : ''}</div>`;
+  } else {
+    body = `<div class="nfx-who">${esc(who || (team ? team.name : ''))}</div>`;
+  }
+  el.innerHTML = `${lead}<div class="nfx-body"><div class="nfx-title">${esc(title)}</div>${body}</div><div class="nfx-min tnum">${esc(e.minute)}</div>`;
+  noticesEl.appendChild(el);
+  const secs = queue.length > 1 ? Math.min(3.5, display.noticeSeconds) : Math.max(4, display.noticeSeconds);
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => { el.remove(); showNext(display); }, 500);
   }, secs * 1000);
 }
 
@@ -411,9 +501,10 @@ function tick() {
   const margins = display.margins[layout];
   const screen = camera ? 'camera' : resolveScreen(m, display);
 
+  const tickIds = !camera && display.style === 'pro' ? events.filter((e) => !e.voided && now - e.realAt < TICKER_MS).slice(0, 6).map((e) => e.id) : [];
   const key = JSON.stringify([mode, layout, screen, margins, guides, m.home, m.away, m.score, m.name, m.category, m.date, m.isTest, m.starters, m.mvp, !!m.countdownEndsAt,
     events.map((e) => [e.id, e.type, e.team, e.minute, e.voided, e.player, e.number, e.playerIn, e.note]),
-    display.recentEvents, display.whiteLogos, display.style, extras.teamPhoto, extras.photos, extras.squad, extras.sponsors, extras.strip, extras.club.nextMatch, extras.season,
+    display.recentEvents, display.whiteLogos, display.style, extras.teamPhoto, extras.photos, extras.squad, tickIds, extras.sponsors, extras.strip, extras.club.nextMatch, extras.season,
     screen === 'halftime' || screen === 'final' || screen === 'stats' ? m.clock.phase : '']);
 
   const changedScreen = cur.mode !== mode || cur.layout !== layout || cur.screen !== screen;

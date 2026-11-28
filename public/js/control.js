@@ -55,7 +55,7 @@ setInterval(() => {
 
 function act(name, args = {}, label = '', opts = {}) {
   const a = { id: uuid(), name, args, label: label || name, status: 'pending', error: '', at: Date.now(), quiet: !!opts.quiet, after: opts.after };
-  if (name === 'event.add') a.args = { ...args, at: Math.round(link.now()) };
+  if (name === 'event.add') a.args = { ...args, at: args.at ?? Math.round(link.now()) };
   S.outbox.push(a);
   saveOutbox();
   flush();
@@ -86,8 +86,7 @@ function afterOk(a, m) {
   const r = m.result || {};
   if (a.name === 'event.add') {
     S.lastAdded = r.eventId;
-    if (a.args.awaiting && r.eventId && !r.deduped) { openScorerSheet(r.eventId, a.args.type); return; }
-    toast(`${a.label} registrado${r.deduped ? ' (ya estaba)' : ''}`, { action: { label: 'Añadir detalle', fn: () => openEventSheet(r.eventId) } });
+    toast(`${a.label}${r.deduped ? ' (ya estaba)' : ''}`, { ms: 4500, action: { label: 'Deshacer', fn: () => act('event.undo', {}, 'Deshacer último evento') } });
   } else if (a.name === 'event.undo') toast(`Deshecho: ${TYPE_LABEL[r.type] || 'evento'}`);
   else if (a.name === 'key.regenerate') { toast('Nueva clave generada'); api('/api/login', { method: 'POST', body: JSON.stringify({ key: r.key }) }).then(() => link.wake()); }
   else if (a.name === 'obs.fixBuffer') toast('Búfer de OBS ajustado');
@@ -136,25 +135,47 @@ function confirmSheet(title, msg, okLabel, fn, danger = false) {
   });
 }
 
-function openScorerSheet(eventId, type) {
+/** Lista de jugadoras (titulares primero). onPick(jugadora) o onNone(); cerrar fuera cancela. */
+function pickPlayer({ title, exclude = null, onPick, onNone }) {
   const mt = m();
-  const ro = [...(S.s?.squad.roster || [])];
-  if (!ro.length) return;
-  ro.sort((a, b) => (mt.starters.includes(b.id) - mt.starters.includes(a.id)) || Number(a.number) - Number(b.number));
-  let done = false;
-  openSheet(`<h1>${esc(TYPE_LABEL[type] || 'Evento')} · ¿quién ha sido?</h1>
+  const ro = [...(S.s?.squad.roster || [])].filter((p) => p.id !== exclude);
+  ro.sort((x, y) => (mt.starters.includes(y.id) - mt.starters.includes(x.id)) || Number(x.number) - Number(y.number));
+  openSheet(`<h1>${esc(title)}</h1>
     <div class="pick">${ro.map((p) => `<button class="pk ${mt.starters.includes(p.id) ? 'st' : ''}" data-pk="${esc(p.id)}"><b>${esc(p.number)}</b><span>${esc(p.name)}</span></button>`).join('')}</div>
-    <div class="actions"><button class="btn ghost block" id="pkNo">Sin jugadora / no lo sé</button></div>`, (sh) => {
-    S.sheetClose = () => { if (!done) act('event.resolve', { id: eventId }, '', { quiet: true }); };
+    <div class="actions"><button class="btn ghost block" id="pkNo">Sin jugadora</button></div>`, (sh) => {
     $$('[data-pk]', sh).forEach((b) => {
       b.onclick = () => {
         const pl = ro.find((x) => x.id === b.dataset.pk);
-        done = true;
-        closeSheet();
-        act('event.update', { id: eventId, patch: { player: pl.name, number: pl.number, rosterId: pl.id } }, `${pl.number} ${pl.name}`, { quiet: false });
+        S.sheetClose = null;
+        $('#sheetWrap').hidden = true;
+        onPick(pl);
       };
     });
-    $('#pkNo', sh).onclick = closeSheet;
+    $('#pkNo', sh).onclick = () => { S.sheetClose = null; $('#sheetWrap').hidden = true; onNone(); };
+  });
+}
+
+/** Registra un evento del club eligiendo la jugadora primero: un toque en el tipo, otro en la jugadora. */
+function addClubEvent(type, side, label, tapAt) {
+  const short = m()[side].short;
+  const base = { type, team: side, at: tapAt };
+  if (type === 'sub') {
+    pickPlayer({
+      title: `Cambio ${short} · ¿quién SALE?`,
+      onPick: (out) => pickPlayer({
+        title: `¿Quién ENTRA por ${out.name}?`,
+        exclude: out.id,
+        onPick: (inn) => act('event.add', { ...base, player: out.name, number: out.number, rosterId: out.id, playerIn: inn.name }, `Cambio · sale ${out.name}, entra ${inn.name}`),
+        onNone: () => act('event.add', { ...base, player: out.name, number: out.number, rosterId: out.id }, `Cambio · sale ${out.name}`),
+      }),
+      onNone: () => act('event.add', base, label),
+    });
+    return;
+  }
+  pickPlayer({
+    title: `${TYPE_LABEL[type]} ${short} · ¿quién?`,
+    onPick: (pl) => act('event.add', { ...base, player: pl.name, number: pl.number, rosterId: pl.id }, `${TYPE_LABEL[type]} · ${pl.number} ${pl.name}`),
+    onNone: () => act('event.add', base, label),
   });
 }
 
@@ -328,12 +349,12 @@ function renderLive() {
       <div class="muted small">Afecta a la pantalla «/live». Las fuentes fijas de OBS (overlay/studio) no cambian. El resultado, el reloj y los eventos son los mismos.</div></div>` : '', JSON.stringify(d && [d.mode, d.layout]));
   const SCREENS = [['auto', 'Automática'], ['live', 'Marcador'], ['prematch', 'Cuenta atrás'], ['lineup', 'Alineación'], ['halftime', 'Descanso'], ['stats', 'Estadísticas'], ['final', 'Final'], ['sponsors', 'Patrocinadores']];
   const cur = S.s.display.screen || 'auto';
-  const canCd = ph === 'pre' || ph === 'halftime';
+  const canCd = true; // siempre disponible: sale en la pantalla «Cuenta atrás» y en el descanso
   setPart('liveShow', `<div class="card" style="display:grid;gap:10px">
       <div class="seg wrap" data-seg="display.screen">${SCREENS.map(([k, l]) => `<button data-v="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       <div class="muted small">«Automática»: cuenta atrás antes de empezar, marcador durante el juego, descanso y final al terminar. Si eliges otra, se queda fija hasta que vuelvas a «Automática».</div>
-      ${canCd ? `<div class="muted small" style="margin-top:4px">${ph === 'pre' ? 'Cuenta atrás para empezar' : 'Cuenta atrás para la 2ª parte'}${mt.countdownEndsAt ? ' (en marcha)' : ''}:</div>
-      <div class="row-btns"><button class="btn sm" data-act="cd" data-m="5">5 min</button><button class="btn sm" data-act="cd" data-m="10">10 min</button><button class="btn sm" data-act="cd" data-m="15">15 min</button><button class="btn sm ghost" data-act="cd" data-m="0">Quitar</button></div>` : ''}</div>`,
+      ${canCd ? `<div class="muted small" style="margin-top:4px">Cuenta atrás${mt.countdownEndsAt ? ' (en marcha)' : ''}:</div>
+      <div class="row-btns"><button class="btn sm" data-act="cd" data-m="5">5 min</button><button class="btn sm" data-act="cd" data-m="10">10 min</button><button class="btn sm" data-act="cd" data-m="15">15 min</button><button class="btn sm" data-act="cdcustom">Otro…</button><button class="btn sm ghost" data-act="cd" data-m="0">Quitar</button></div>` : ''}</div>`,
     JSON.stringify([cur, ph, !!mt.countdownEndsAt]));
   updateClock();
 }
@@ -376,8 +397,10 @@ document.addEventListener('click', (e) => {
     const type = ev.dataset.ev;
     const side = ev.dataset.team || null;
     const tm = side ? m()[side].short : '';
-    const ask = side && side === m().ffspSide && ['goal', 'yellow', 'red'].includes(type) && S.s.display.askScorer && S.s.squad.roster.length > 0;
-    act('event.add', { type, team: side, ...(ask ? { awaiting: true } : {}) }, `${TYPE_LABEL[type]}${tm ? ' · ' + tm : ''}`);
+    const ask = side && side === m().ffspSide && ['goal', 'yellow', 'red', 'sub'].includes(type) && S.s.display.askScorer && S.s.squad.roster.length > 0;
+    const label = `${TYPE_LABEL[type]}${tm ? ' · ' + tm : ''}`;
+    if (ask) addClubEvent(type, side, label, Math.round(link.now())); // las jugadoras salen al instante
+    else act('event.add', { type, team: side }, label);
     return;
   }
   const edit = e.target.closest('[data-edit]');
@@ -405,6 +428,13 @@ document.addEventListener('click', (e) => {
       break;
     }
     case 'setclock': openClockSheet(); break;
+    case 'cdcustom':
+      openSheet(`<h1>Cuenta atrás</h1><div class="fields"><div><label class="f">Minutos (se admiten decimales: 7,5)</label><input id="cdMin" type="number" inputmode="decimal" min="0.5" max="90" step="0.5" value="10"></div></div>
+        <div class="actions"><button class="btn primary block" id="cdOk">Iniciar cuenta atrás</button><button class="btn ghost block" id="cdNo">Cancelar</button></div>`, (sh) => {
+        $('#cdNo', sh).onclick = closeSheet;
+        $('#cdOk', sh).onclick = () => { const mm = Number(String($('#cdMin', sh).value).replace(',', '.')); closeSheet(); if (mm > 0) act('clock.countdown', { minutes: mm }, `Cuenta atrás de ${mm} min`); };
+      });
+      break;
     case 'cd': lock(); act('clock.countdown', { minutes: Number(a.dataset.m) }, Number(a.dataset.m) ? `Cuenta atrás de ${a.dataset.m} min` : 'Cuenta atrás quitada'); break;
     case 'undo': lock(); act('event.undo', {}, 'Deshacer último evento'); break;
     default:

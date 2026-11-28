@@ -40,12 +40,14 @@ export function badge(team, cls = '') {
 }
 
 const SVG = (inner, vb = '0 0 24 24') => `<svg class="ico" viewBox="${vb}" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+// Balón reconocible (blanco con parches lila). Se usa en iconos y en la línea del tiempo.
+export const BALL_INNER = '<circle cx="12" cy="12" r="10.4" fill="#fff" stroke="#4a2fb0" stroke-width="1.5"/><path d="M12 6.9l4.1 3-1.6 4.8h-5L7.9 9.9z" fill="#4a2fb0"/><path d="M12 6.9V2.2M16.1 9.9l4.4-1.4M14.5 14.7l2.7 3.7M9.5 14.7l-2.7 3.7M7.9 9.9L3.5 8.5" stroke="#4a2fb0" stroke-width="1.5" fill="none" stroke-linecap="round"/>';
 export function icon(type) {
   switch (type) {
-    case 'goal': return SVG('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.6l3.6 2.6-1.4 4.2H9.8L8.4 10.2z"/><path d="M12 7.6V3.6M15.6 10.2l3.8-1.2M14.2 14.4l2.4 3.2M9.8 14.4l-2.4 3.2M8.4 10.2L4.6 9"/>');
+    case 'goal': return `<svg class="ico ico-ball" viewBox="0 0 24 24" aria-hidden="true">${BALL_INNER}</svg>`;
     case 'foul': return SVG('<path d="M6 21V4"/><path d="M6 5h11l-2.4 3.6L17 12H6"/>');
-    case 'yellow': return `<svg class="ico ico-card" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2" fill="var(--yellow)"/></svg>`;
-    case 'red': return `<svg class="ico ico-card" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2" fill="var(--red)"/></svg>`;
+    case 'yellow': return `<svg class="ico ico-card" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3" width="11" height="18" rx="2.4" fill="var(--yellow)"/></svg>`;
+    case 'red': return `<svg class="ico ico-card" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3" width="11" height="18" rx="2.4" fill="var(--red)"/></svg>`;
     case 'sub': return SVG('<path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/>');
     case 'play': return SVG('<rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M10.2 9.4v5.2l4.4-2.6z" fill="currentColor"/>');
     default: return '';

@@ -203,3 +203,105 @@ body.style-pro { --disp: 'Archivo Black', 'Arial Black', 'Segoe UI', sans-serif;
 .style-pro .studio.st-v .sp-right .hero { min-height: 380px; }
 .gx-cut { margin-top: -70px; }
 .layout-h .gx-cut { margin-top: 0; }
+
+/* =====================================================================
+   REDISEÑO PRO v2: sin recuadros alrededor de los escudos, sin «EN DIRECTO»,
+   más aire, marcador compacto, foto grande y eventos que entran y se van solos.
+   ===================================================================== */
+.style-pro .studio .st-t, .style-pro .studio .sp-left .st-t { padding: 0; }
+.style-pro .studio .st-t::before, .style-pro .studio .st-t::after { display: none; }
+.style-pro .studio .st-live.st-live-test { justify-content: flex-end; }
+.style-pro .studio .st-live.st-live-test::before, .style-pro .studio .st-live.st-live-test::after { display: none; }
+.style-pro .studio[class*="sp-"]:not(.pro-live):not(.pro-lu) { gap: 30px; }
+.style-pro .studio .st-t .badge, .style-pro .studio .badge img { filter: drop-shadow(0 10px 22px var(--shadow)); }
+.style-pro .studio .sp-left .st-t .num { margin-top: 6px; }
+
+/* --- Pantalla en directo --- */
+.pro-live { display: flex; flex-direction: column; gap: 14px; }
+.lv-test { position: absolute; top: -46px; right: 0; }
+.lv-score { flex: none; display: flex; align-items: center; justify-content: center; gap: 22px; }
+.lv-crest .badge { --s: 184px; }
+.lv-score .num { font: 400 200px/1 var(--disp); color: #fff; transform: skewX(-9deg); text-shadow: 0 8px 26px var(--shadow); min-width: .62em; text-align: center; }
+.lv-dash { width: 46px; height: 10px; background: #fff; transform: skewX(-24deg); box-shadow: 0 4px 14px var(--shadow); }
+.lv-clock { flex: none; display: flex; align-items: center; justify-content: center; gap: 26px; }
+.style-pro .lv-clock .cl { font: 400 112px/1 var(--disp); color: #fff; transform: skewX(-9deg); text-shadow: 0 6px 22px var(--shadow); }
+.style-pro .lv-clock .ph { margin-top: 0; font-size: 24px; padding: 11px 24px; }
+.lv-stage { position: relative; flex: 1; min-height: 300px; }
+.lv-stage::before { content: ''; position: absolute; left: 6%; right: 6%; top: 10%; bottom: 0; background: linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,0)); clip-path: polygon(16% 0, 100% 0, 84% 100%, 0 100%); }
+.lv-stage .rot { position: absolute; inset: 0; height: auto; }
+.lv-stage .rot-i { align-items: flex-end; justify-content: center; }
+.lv-stage .rot-i img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 16px 30px rgba(60,30,140,.45)); transform: translateY(26px) scale(.97); transition: transform 1s ease; }
+.lv-stage .rot-i.on img { transform: none; }
+.lv-tick { flex: none; display: flex; flex-direction: column; gap: 6px; height: 204px; }
+.pro-live:not(.has-stage) .lv-tick { flex: 1; height: auto; }
+.tk { flex: none; display: flex; align-items: center; gap: 16px; height: 64px; padding: 0 26px 0 22px; border-left: 7px solid #fff; background: linear-gradient(90deg, var(--block), var(--block2));
+  clip-path: polygon(0 0, 100% 0, 98.4% 100%, 0 100%); text-shadow: none; animation: tkout .6s var(--d) both; }
+.tk.fresh { animation: tkin .5s both, tkout .6s var(--d) both; }
+.tk-min { font: 400 28px/1 var(--disp); color: #fff; min-width: 92px; }
+.tk-ico { display: flex; font-size: 30px; color: #fff; }
+.tk-txt { flex: 1; min-width: 0; font: 700 28px/1 'Archivo', sans-serif; text-transform: uppercase; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-tm { font: 400 22px/1 var(--disp); color: #fff; opacity: .9; }
+@keyframes tkin { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+@keyframes tkout { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-40px); } }
+/* horizontal: marcador a la izquierda, foto grande a la derecha */
+.pro-live.st-h { display: grid; grid-template-columns: 1fr 1.05fr; grid-template-rows: auto auto 1fr auto; column-gap: 60px; row-gap: 22px; }
+.pro-live.st-h:not(.has-stage) { grid-template-columns: 1fr; }
+.pro-live.st-h .lv-score { justify-content: flex-start; }
+.pro-live.st-h .lv-crest .badge { --s: 150px; }
+.pro-live.st-h .lv-score .num { font-size: 168px; }
+.pro-live.st-h .lv-clock { justify-content: flex-start; }
+.pro-live.st-h .lv-stage { grid-column: 2; grid-row: 1 / 5; }
+.pro-live.st-h .lv-tick { align-self: end; height: auto; min-height: 204px; justify-content: flex-end; }
+.pro-live.st-h .strip { grid-column: 1; }
+.pro-live .strip { margin-top: 0; }
+
+/* --- Avisos (tarjetas, cambios, gol del rival): banda con tarjeta grande --- */
+.style-pro.mode-studio #notices { left: var(--ml); right: var(--mr); top: calc(var(--mt) + 470px); bottom: auto; }
+.style-pro.layout-h.mode-studio #notices { top: auto; bottom: calc(var(--mb) + 40px); right: auto; width: 1000px; }
+.nfx { position: relative; display: flex; align-items: center; gap: 34px; padding: 26px 44px 26px 38px; color: #fff; text-shadow: none;
+  background: linear-gradient(90deg, rgba(76,46,176,.97), rgba(112,80,218,.95)); clip-path: polygon(0 0, 100% 0, 97.5% 100%, 0 100%); border-bottom: 7px solid #fff;
+  animation: nfxin .5s cubic-bezier(.2,.9,.2,1) both; }
+.nfx.out { animation: nfxout .5s ease-in both; }
+.nfx-card { flex: none; width: 124px; height: 172px; border-radius: 12px; border: 7px solid #fff; transform: rotate(-9deg); box-shadow: 0 14px 28px rgba(20,8,70,.5); background: #f4d03f; }
+.nfx.t-red .nfx-card { background: #e5484d; }
+.nfx-crest .badge { --s: 150px; }
+.nfx-body { flex: 1; min-width: 0; }
+.nfx-title { font: 400 62px/1 var(--disp); transform: skewX(-9deg); transform-origin: left; letter-spacing: -.01em; }
+.nfx-who { font: 700 42px/1.1 'Archivo', sans-serif; text-transform: uppercase; margin-top: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nfx-min { flex: none; font: 400 62px/1 var(--disp); }
+.nfx-sub { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.nfx-sub span { display: flex; align-items: baseline; gap: 14px; font: 700 38px/1.1 'Archivo', sans-serif; text-transform: uppercase; min-width: 0; }
+.nfx-sub small { font: 700 18px 'Archivo', sans-serif; letter-spacing: .2em; min-width: 82px; }
+.nfx-sub i { font-style: normal; font-size: 34px; }
+.nfx-sub .out i { color: #ffc2c2; }
+.nfx-sub .in i { color: #c4f5d2; }
+.nfx.voided .nfx-title { color: #ffd0d0; }
+@keyframes nfxin { from { opacity: 0; transform: translateX(-80px); } to { opacity: 1; transform: none; } }
+@keyframes nfxout { to { opacity: 0; transform: translateX(60px); } }
+
+.style-pro .lv-clock .ph { font: 700 24px/1 'Archivo', sans-serif; letter-spacing: .3em; text-indent: .3em; color: var(--deep); background: #fff; border: 0; border-radius: 0; padding: 12px 26px; text-shadow: none; clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); }
+.style-pro .lv-clock .ad { background: var(--block); color: #fff; border: 0; border-radius: 0; font: 700 32px 'Archivo', sans-serif; padding: 6px 20px; clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%); text-shadow: none; }
+.nfx-title { font-size: 56px; }
+
+/* --- Cinta y patrocinadores (Estilo Pro) --- */
+.style-pro .studio .mq-i.msg { font: 600 34px/1 'Archivo', sans-serif; text-transform: uppercase; letter-spacing: .08em; color: #fff; }
+.style-pro .studio.sp-sponsors .st-live span { font-size: 64px; }
+.style-pro .mq-row { background: linear-gradient(90deg, rgba(255,255,255,.28), rgba(255,255,255,.12)); clip-path: polygon(0 0, 100% 0, 98.4% 100%, 0 100%); }
+.style-pro .gl .gl-name { font: 700 26px 'Archivo', sans-serif; text-transform: uppercase; letter-spacing: .02em; }
+.style-pro .gl .gl-min { font: 400 24px var(--disp); color: #fff; }
+.style-pro .studio .map { padding: 6px 10px; }
+.style-pro .studio .map .mt { font-weight: 700; }
+
+/* --- GOL: el «GOL» de fondo solo en las franjas de arriba y abajo, nunca detrás del grande --- */
+.gx-ghost.g1 { top: calc(var(--mt) - 372px); }
+.gx-ghost.g2 { top: calc(100% - var(--mb) + 10px); color: rgba(255,255,255,.18); }
+.gx-ghost.g3 { display: none; }
+.layout-h .gx-ghost.g1 { top: calc(var(--mt) - 330px); }
+.layout-h .gx-ghost.g2 { top: calc(100% - var(--mb) - 20px); }
+
+.style-pro .lv-clock .ad:not(.on), .style-pro .lv-clock .ad:empty { display: none; }
+.style-pro .studio.st-v.sp-final .hero { min-height: 170px; }
+.style-pro .studio.st-v.sp-final .map { max-height: 190px; }
+.style-pro .studio.st-v.sp-final .gl .gl-row { height: 42px; }
+.style-pro .studio.st-v.sp-halftime .hero { min-height: 300px; }
+.pro-live.st-h .lv-test { top: 0; right: 0; }

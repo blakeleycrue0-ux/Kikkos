@@ -128,6 +128,16 @@ await ctl.cmd('clock.set', { ms: 63 * 60000 + 14000 });
 await add({ type: 'red', team: 'away', player: 'María del Carmen Fernández de la Vega', number: '14', note: 'Doble amarilla por protestar al árbitro', matchMs: 52 * 60000 });
 await add({ type: 'yellow', team: 'home', player: 'Joana', matchMs: 58 * 60000 });
 await shot('live-v', '/studio/v', 1080, 1920);
+await shot('yellow-v', '/studio/v', 1080, 1920, async () => {
+  await ctl.cmd('event.add', { type: 'yellow', team: 'home', player: by('7').name, number: '7', rosterId: by('7').id }, undefined);
+  await wait(1300);
+});
+await wait(5200);
+await shot('sub-v', '/studio/v', 1080, 1920, async () => {
+  await ctl.cmd('event.add', { type: 'sub', team: 'home', player: by('9').name, number: '9', playerIn: by('4').name }, undefined);
+  await wait(1300);
+});
+await wait(5200);
 await shot('live-h', '/studio/h', 1920, 1080);
 await shot('stats-v', '/studio/v?screen=stats', 1080, 1920);
 await shot('live-phone', '/studio/v', 390, 693);

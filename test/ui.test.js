@@ -110,7 +110,7 @@ test('UI: las dos distribuciones caben en su lienzo y respetan los márgenes', o
       const r = await pg.evaluate(() => {
         const st = document.querySelector('#stage').getBoundingClientRect();
         const bad = [];
-        for (const el of document.querySelectorAll('#view .safe *:not(.timeline *)')) {
+        for (const el of document.querySelectorAll('#view .safe *:not(.timeline *):not(.mq *)')) {
           const b = el.getBoundingClientRect();
           if (b.width && (b.right > st.right + 1 || b.bottom > st.bottom + 1 || b.left < -1 || b.top < -1)) bad.push(el.className);
         }
@@ -160,7 +160,13 @@ test('UI: pantallas automáticas, alineación, y gol del club con jugadora elegi
     await phone.click(homeBtn);
     await phone.waitForSelector('.pick .pk');
     assert.equal(await obs.locator('.goalfx').count(), 0, 'la animación espera al nombre');
+    assert.equal(ctl.state.match.events.length, 0, 'no se registra nada hasta elegir jugadora');
     await phone.click('.pk[data-pk] >> text=Marta Ferrer');
+    await sleep(300);
+    assert.equal(ctl.state.match.events.length, 1, 'un único evento');
+    assert.equal(ctl.state.match.events[0].player, 'Marta Ferrer');
+    assert.equal(ctl.state.match.events[0].number, '9');
+    assert.equal(ctl.state.match.events[0].awaiting, false);
     await obs.waitForSelector('.goalfx .fx-name', { timeout: 4000 });
     assert.equal(await txt(obs, '.fx-name'), 'Marta Ferrer');
     assert.equal(await txt(obs, '.fx-num'), '9');
@@ -177,7 +183,7 @@ test('UI: pantallas automáticas, alineación, y gol del club con jugadora elegi
     await ctl.cmd('clock.start2');
     await ctl.cmd('clock.finish');
     await obs.waitForSelector('.sp-final');
-    assert.ok((await obs.locator('.sm-row').count()) >= 1);
+    assert.ok((await obs.locator('.gl-row').count()) >= 1, 'la final lista las goleadoras');
   } finally { ctl.close(); await browser.close(); await s.close(); }
 });
 
@@ -208,7 +214,9 @@ test('UI Estilo Pro: alineación con dorsal y nombre, foto de grupo, GOL gigante
     assert.deepEqual(await obs.locator('.pt-n').allInnerTexts(), ['9', '10']);
     assert.deepEqual((await obs.locator('.pt-name').allInnerTexts()).map((t) => t.toLowerCase()), ['marta ferrer', 'lucia garcia']);
     await obs.goto(`${s.base}/studio/v`);
-    await obs.waitForSelector('.timeline');
+    await obs.waitForSelector('.pro-live');
+    assert.equal(await obs.locator('.st-live').count(), 0, 'sin el rótulo «EN DIRECTO»');
+    assert.equal(await obs.locator('.timeline').count(), 0, 'sin lista gigante: los eventos entran y se van solos');
     const g = await ctl.cmd('event.add', { type: 'goal', team: ctl.state.match.ffspSide, awaiting: true });
     const p9 = ctl.state.squad.roster.find((p) => p.number === '9');
     await ctl.cmd('event.update', { id: g.result.eventId, patch: { player: p9.name, number: '9', rosterId: p9.id } });
@@ -216,12 +224,33 @@ test('UI Estilo Pro: alineación con dorsal y nombre, foto de grupo, GOL gigante
     assert.equal(await txt(obs, '.gx-word'), 'GOL');
     assert.match(await txt(obs, '.gx-name'), /Marta Ferrer/i);
     assert.equal(await obs.locator('.gx-photo img').count(), 1, 'la foto de la goleadora sale en la animación');
+    await obs.waitForSelector('.tk', { timeout: 6000 });
+    assert.equal(await obs.locator('.tk').count(), 1, 'el gol reciente está en el marcador');
+    // un evento de hace dos minutos ya no aparece en el marcador (se va solo)
+    await ctl.cmd('event.add', { type: 'foul', team: 'away', at: Date.now() - 120000 });
+    await sleep(600);
+    assert.equal(await obs.locator('.tk').count(), 1, 'los eventos antiguos no ocupan pantalla');
+    // tarjeta amarilla del club: banda con tarjeta grande y nombre
+    await sleep(900);
+    await ctl.cmd('event.add', { type: 'yellow', team: ctl.state.match.ffspSide, player: p9.name, number: '9', rosterId: p9.id });
+    await obs.waitForSelector('.nfx.t-yellow .nfx-card', { timeout: 12000 });
+    assert.match(await txt(obs, '.nfx-who'), /Marta Ferrer/i);
     // galería de fotos de ambiente: «general» en el descanso, «gol» en la animación de gol
     const up2 = await (await fetch(`${s.base}/api/upload/logo?k=${s.key}`, { method: 'POST', body: png })).json();
     await ctl.cmd('photo.add', { url: up2.url, tag: 'general' });
     await ctl.cmd('clock.halftime');
     await obs.waitForSelector('.sp-halftime .hero img');
     assert.equal(await obs.locator('.hero img').getAttribute('src'), up2.url, 'la foto de la galería sale en el descanso');
+    assert.equal(await obs.locator('.sp-halftime .sm').count(), 0, 'el descanso solo lleva estadísticas, sin resumen que se corte');
+    assert.ok(await obs.locator('.sp-halftime .stats').count());
+    // cinta de patrocinadores: continua, en tres filas, sin textos de «gracias» ni marcador
+    await ctl.cmd('sponsor.add', { url: up2.url });
+    await ctl.cmd('settings.update', { patch: { display: { screen: 'sponsors' } } });
+    await obs.waitForSelector('.spons-rows .mq-row');
+    assert.equal(await obs.locator('.mq-row').count(), 3);
+    assert.equal(await obs.locator('.sp-sponsors .mini-score, .sp-sponsors .thanks').count(), 0);
+    assert.ok((await obs.locator('.mq-row .mq-track').first().evaluate((el) => getComputedStyle(el).animationName)) === 'mq', 'la cinta se mueve sin parar');
+    await ctl.cmd('settings.update', { patch: { display: { screen: 'auto' } } });
     // sin foto del jugador, el gol muestra el escudo grande
     // volver al estilo clásico desde los ajustes
     await ctl.cmd('settings.update', { patch: { display: { style: 'classic' } } });

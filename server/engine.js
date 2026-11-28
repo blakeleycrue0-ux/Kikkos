@@ -191,7 +191,6 @@ export function execMatchCommand(m, name, a, ctx) {
       audit(m, now, name, 'Reloj reiniciado a cero');
       break;
     case 'clock.countdown': {
-      if (c.phase !== 'pre' && c.phase !== 'halftime') bad('bad_phase', 'La cuenta atrás es para la previa o el descanso');
       const min = Number(a.minutes);
       if (!Number.isFinite(min) || min < 0 || min > 90) bad('invalid', 'Minutos no válidos');
       m.countdownEndsAt = min > 0 ? now + Math.round(min * 60000) : 0;
