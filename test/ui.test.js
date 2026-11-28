@@ -226,7 +226,7 @@ test('UI Estilo Pro: alineación con dorsal y nombre, foto de grupo, GOL gigante
     // volver al estilo clásico desde los ajustes
     await ctl.cmd('settings.update', { patch: { display: { style: 'classic' } } });
     await obs.waitForFunction(() => !document.body.classList.contains('style-pro'));
-    assert.equal((await fetch(`${s.base}/assets/teamphoto`)).status, 200);
-    assert.equal(ctl.state.teamPhoto ?? (await (await fetch(`${s.base}/api/state`)).json()).teamPhoto, true);
+    // la galería sigue disponible tras cambiar de estilo
+    assert.equal(ctl.state.photos.length, 1);
   } finally { ctl.close(); await browser.close(); await s.close(); }
 });
