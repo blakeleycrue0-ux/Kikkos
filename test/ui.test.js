@@ -216,10 +216,12 @@ test('UI Estilo Pro: alineación con dorsal y nombre, foto de grupo, GOL gigante
     assert.equal(await txt(obs, '.gx-word'), 'GOL');
     assert.match(await txt(obs, '.gx-name'), /Marta Ferrer/i);
     assert.equal(await obs.locator('.gx-photo img').count(), 1, 'la foto de la goleadora sale en la animación');
-    // foto de grupo (recorte): aparece en el descanso
-    assert.equal((await fetch(`${s.base}/api/upload/teamphoto?k=${s.key}`, { method: 'POST', body: png })).status, 200);
+    // galería de fotos de ambiente: «general» en el descanso, «gol» en la animación de gol
+    const up2 = await (await fetch(`${s.base}/api/upload/logo?k=${s.key}`, { method: 'POST', body: png })).json();
+    await ctl.cmd('photo.add', { url: up2.url, tag: 'general' });
     await ctl.cmd('clock.halftime');
     await obs.waitForSelector('.sp-halftime .hero img');
+    assert.equal(await obs.locator('.hero img').getAttribute('src'), up2.url, 'la foto de la galería sale en el descanso');
     // sin foto del jugador, el gol muestra el escudo grande
     // volver al estilo clásico desde los ajustes
     await ctl.cmd('settings.update', { patch: { display: { style: 'classic' } } });

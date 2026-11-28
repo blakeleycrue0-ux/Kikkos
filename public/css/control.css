@@ -223,3 +223,8 @@ details.sec > .body { padding: 0 14px 16px; display: grid; gap: 12px; }
 .ro-row { grid-template-columns: 52px 56px 1fr auto auto; }
 .ro-ph { width: 52px; height: 52px; border-radius: 10px; border: 1px dashed var(--lilac); display: grid; place-items: center; overflow: hidden; cursor: pointer; background: var(--ink-3); color: var(--lilac); font-size: 24px; }
 .ro-ph img { width: 100%; height: 100%; object-fit: cover; }
+
+.ph-grid { grid-template-columns: repeat(3, 1fr); }
+.ph-grid .sp-i { min-height: 96px; }
+.ph-grid .sp-i img { max-height: 90px; }
+.ph-tag { position: absolute; left: 6px; bottom: 6px; font: 700 10px var(--font-ui); letter-spacing: .1em; background: var(--black); color: var(--lilac); padding: 3px 6px; border-radius: 4px; }

@@ -30,7 +30,7 @@ stage.appendChild(fxEl);
 
 let snaps = [];
 let latestDisplay = null;
-let extras = { squad: { roster: [], staff: {} }, sponsors: [], strip: { enabled: false, seconds: 7, messages: [], sponsors: true }, season: { scorers: [], form: { last: [], streak: null } }, club: {}, teamPhoto: false };
+let extras = { squad: { roster: [], staff: {} }, sponsors: [], strip: { enabled: false, seconds: 7, messages: [], sponsors: true }, season: { scorers: [], form: { last: [], streak: null } }, club: {}, teamPhoto: false, photos: [] };
 let sig = '';
 let prevScore = null;
 let cur = { mode: null, layout: null, screen: null };
@@ -43,7 +43,7 @@ const link = new Link({
     const cut = st.serverTime - 150000;
     while (snaps.length > 1 && snaps[0].t < cut) snaps.shift();
     latestDisplay = st.display;
-    extras = { squad: st.squad, sponsors: st.sponsors, strip: st.strip, season: st.season, club: st.club, teamPhoto: st.teamPhoto };
+    extras = { squad: st.squad, sponsors: st.sponsors, strip: st.strip, season: st.season, club: st.club, teamPhoto: st.teamPhoto, photos: st.photos || [] };
   },
 });
 link.start();
@@ -156,7 +156,18 @@ const formHtml = () => {
 
 const surname = (name) => { const w = String(name).trim().split(/\s+/); return (w.length > 1 ? w.slice(1).join(' ') : w[0]).toUpperCase(); };
 const silhouette = '<svg viewBox="0 0 100 110" class="sil"><circle cx="50" cy="38" r="20"/><path d="M12 110c0-26 16-42 38-42s38 16 38 42z"/></svg>';
-const heroHtml = () => (extras.teamPhoto ? '<div class="hero"><img src="/assets/teamphoto" alt=""></div>' : '');
+// Fotos de ambiente: se alternan cada vez que se entra en una pantalla con foto.
+let photoTurn = 0;
+let lastPhotoScreen = null;
+function nextPhoto(tag) {
+  const list = extras.photos.filter((x) => x.tag === tag);
+  return list.length ? list[photoTurn % list.length] : null;
+}
+const heroHtml = () => {
+  const p = nextPhoto('general');
+  if (p) return `<div class="hero"><img src="${esc(p.url)}" alt=""></div>`;
+  return extras.teamPhoto ? '<div class="hero"><img src="/assets/teamphoto" alt=""></div>' : '';
+};
 
 function proLineup(m, layout, strip) {
   const starters = extras.squad.roster.filter((p) => m.starters.includes(p.id)).sort((x, y) => Number(x.number) - Number(y.number));
@@ -343,7 +354,10 @@ function showGoalFx({ e, match }, display) {
   const pro = display.style === 'pro';
   if (pro) {
     const pl = (e.rosterId && rosterById(e.rosterId)) || extras.squad.roster.find((x) => who && x.name === who);
-    const photo = pl?.photo ? `<div class="gx-photo"><img src="${esc(pl.photo)}" alt=""></div>` : `<div class="gx-badge">${badge(team, 'b')}</div>`;
+    const gp = nextPhoto('gol');
+    const photo = pl?.photo ? `<div class="gx-photo"><img src="${esc(pl.photo)}" alt=""></div>`
+      : gp ? `<div class="gx-cut"><img src="${esc(gp.url)}" alt=""></div>` : `<div class="gx-badge">${badge(team, 'b')}</div>`;
+    photoTurn++;
     el.className = 'goalfx pro';
     el.style.setProperty('--tc', team.color);
     el.innerHTML = `<div class="gx-bg"></div><div class="gx-ghost g1">GOL</div><div class="gx-ghost g2">GOL</div><div class="gx-ghost g3">GOL</div><div class="gx-col"><div class="gx-word">GOL</div>${photo}
@@ -399,7 +413,7 @@ function tick() {
 
   const key = JSON.stringify([mode, layout, screen, margins, guides, m.home, m.away, m.score, m.name, m.category, m.date, m.isTest, m.starters, m.mvp, !!m.countdownEndsAt,
     events.map((e) => [e.id, e.type, e.team, e.minute, e.voided, e.player, e.number, e.playerIn, e.note]),
-    display.recentEvents, display.whiteLogos, display.style, extras.teamPhoto, extras.squad, extras.sponsors, extras.strip, extras.club.nextMatch, extras.season,
+    display.recentEvents, display.whiteLogos, display.style, extras.teamPhoto, extras.photos, extras.squad, extras.sponsors, extras.strip, extras.club.nextMatch, extras.season,
     screen === 'halftime' || screen === 'final' || screen === 'stats' ? m.clock.phase : '']);
 
   const changedScreen = cur.mode !== mode || cur.layout !== layout || cur.screen !== screen;
@@ -430,6 +444,8 @@ function tick() {
     prevScore = { ...m.score };
     if (changedScreen) {
       const had = cur.screen !== null;
+      if (screen !== lastPhotoScreen) photoTurn++;
+      lastPhotoScreen = screen;
       cur = { mode, layout, screen };
       view.classList.remove('enter');
       void view.offsetWidth;

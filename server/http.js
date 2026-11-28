@@ -166,7 +166,7 @@ export function createRequestHandler(app) {
         }
 
         if (p === '/api/upload/logo' && req.method === 'POST') {
-          const buf = await readBody(req, 3 * 1024 * 1024);
+          const buf = await readBody(req, 8 * 1024 * 1024);
           const kind = sniffImage(buf);
           if (!kind) return send(res, 415, { ok: false, error: 'Formato no admitido (usa PNG, JPG, WEBP o SVG)' });
           const name = `${uid(12)}.${kind}`;

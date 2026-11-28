@@ -76,6 +76,16 @@ test('plantilla, alineación y cuenta atrás en el servidor; goles con jugadora 
   // goleadoras
   assert.deepEqual(ctl.state.season.scorers[0], { name: roster[2].name, number: roster[2].number, goals: 1 });
 
+  // fotos de ambiente (galería)
+  const pngPhoto = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  const ph = await (await fetch(`${s.base}/api/upload/logo?k=${s.key}`, { method: 'POST', body: pngPhoto })).json();
+  assert.equal((await ctl.cmd('photo.add', { url: ph.url, tag: 'gol' })).ok, true);
+  assert.equal((await ctl.cmd('photo.add', { url: ph.url, tag: 'otra' })).ok, true);
+  assert.deepEqual(ctl.state.photos.map((x) => x.tag), ['gol', 'general'], 'etiqueta desconocida => general');
+  assert.equal((await ctl.cmd('photo.add', { url: 'https://x.es/a.png', tag: 'gol' })).ok, false);
+  await ctl.cmd('photo.remove', { id: ctl.state.photos[0].id });
+  assert.equal(ctl.state.photos.length, 1);
+
   // patrocinadores y cinta
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
   const { url } = await (await fetch(`${s.base}/api/upload/logo?k=${s.key}`, { method: 'POST', body: png })).json();

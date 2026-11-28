@@ -101,6 +101,7 @@ export class App extends EventEmitter {
       club: { name: st.club.name, short: st.club.short, nextMatch: st.club.nextMatch || '' },
       squad: { roster: st.roster.map((p) => ({ id: p.id, number: p.number, name: p.name, starter: !!p.starter, photo: p.photo || '' })), staff: st.staff },
       sponsors: st.sponsors.map((x) => ({ id: x.id, url: x.url })),
+      photos: st.photos.map((x) => ({ id: x.id, url: x.url, tag: x.tag })),
       strip: st.strip,
       teamPhoto: !!this.backgroundFile('teamphoto'),
       season: this.seasonStats(),
@@ -355,6 +356,20 @@ export class App extends EventEmitter {
         this.broadcastState(now);
         return {};
       }
+      case 'photo.add': {
+        if (!/^\/assets\/logos\/[\w.-]+$/.test(String(a.url))) throw new CmdError('invalid', 'Imagen no válida');
+        if (this.settings.photos.length >= 12) throw new CmdError('invalid', 'Máximo 12 fotos');
+        const tag = a.tag === 'gol' ? 'gol' : 'general';
+        this.settings.photos.push({ id: uid(6), url: a.url, tag });
+        this.store.saveSettings(this.settings);
+        this.broadcastState(now);
+        return {};
+      }
+      case 'photo.remove':
+        this.settings.photos = this.settings.photos.filter((x) => x.id !== String(a.id));
+        this.store.saveSettings(this.settings);
+        this.broadcastState(now);
+        return {};
       case 'sponsor.remove':
         this.settings.sponsors = this.settings.sponsors.filter((x) => x.id !== String(a.id));
         this.store.saveSettings(this.settings);

@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS = () => ({
   roster: [], // { id, number, name, full, starter, photo }
   staff: { coach: '', delegate: '' },
   sponsors: [], // { id, url }
+  photos: [], // { id, url, tag }  tag: general (descanso/previa/final) | gol
   strip: { enabled: false, seconds: 7, messages: [], sponsors: true, whiteBadge: false },
   display: {
     mode: 'camera', // camera | studio  (lo que muestra /live)

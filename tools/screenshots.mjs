@@ -65,12 +65,34 @@ await ctl.cmd('clock.countdown', { minutes: 9.9 });
 const prematchId = ctl.state.match.id;
 
 const browser = await chromium.launch();
-if (!process.env.NO_TEAMPHOTO) {
+if (!process.env.NO_TEAMPHOTO && !process.env.REAL_PHOTOS) {
   const pg = await browser.newPage({ viewport: { width: 1600, height: 900 } });
   await pg.setContent(`<body style="margin:0;background:transparent">${teamPhoto.toString()}</body>`);
   const png = await pg.screenshot({ type: 'png', omitBackground: true });
   await pg.close();
   await fetch(`${base}/api/upload/teamphoto?k=${key}`, { method: 'POST', body: png });
+}
+// Fotos reales (opcional): REAL_PHOTOS="ruta.png:general,ruta2.png:gol"
+if (process.env.REAL_PHOTOS) {
+  const pg = await browser.newPage();
+  await pg.goto(base + '/calibrate');
+  for (const item of process.env.REAL_PHOTOS.split(',')) {
+    const [file, tag] = item.split(':');
+    const b64 = fs.readFileSync(file).toString('base64');
+    const out64 = await pg.evaluate(async (data) => {
+      const { trimAlpha } = await import('/js/image.js');
+      const bin = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+      const blob = await trimAlpha(new Blob([bin], { type: 'image/png' }));
+      const buf = new Uint8Array(await blob.arrayBuffer());
+      let str = '';
+      for (let i = 0; i < buf.length; i += 0x8000) str += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      return btoa(str);
+    }, b64);
+    const png = Buffer.from(out64, 'base64');
+    const url = await upl(png);
+    await ctl.cmd('photo.add', { url, tag });
+  }
+  await pg.close();
 }
 async function shot(name, url, w, h, pre) {
   const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });

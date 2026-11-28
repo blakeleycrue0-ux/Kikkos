@@ -188,3 +188,18 @@ body.style-pro { --disp: 'Archivo Black', 'Arial Black', 'Segoe UI', sans-serif;
 .style-pro .studio .bars::before { background: rgba(255,255,255,.28); }
 .style-pro .studio .bars .bar.r { background: #d9ccff; }
 .style-pro .studio .map { background: linear-gradient(90deg, var(--block), var(--block2)); padding: 8px 12px; }
+
+/* Fotos de ambiente recortadas (sin fondo) */
+.gx-cut { flex: 1; min-height: 0; width: 100%; position: relative; animation: rise .7s .25s both; }
+.gx-cut img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; filter: drop-shadow(0 16px 30px rgba(60,30,140,.5)); }
+.layout-h .gx-cut { grid-column: 2; grid-row: 1 / 5; height: 100%; }
+
+/* Más sitio para las fotos en vertical */
+.style-pro .studio.st-v.sp-halftime .sp-left, .style-pro .studio.st-v.sp-final .sp-left { --tile: 150px; }
+.style-pro .studio.st-v.sp-halftime .sp-left .st-t .badge, .style-pro .studio.st-v.sp-final .sp-left .st-t .badge { --s: 106px; }
+.style-pro .studio.st-v.sp-halftime .sp-left .st-t .num, .style-pro .studio.st-v.sp-final .sp-left .st-t .num { font-size: 100px; margin-top: 12px; }
+.style-pro .studio.st-v.sp-halftime .sp-left .sp-cd .cdv { font-size: 92px; }
+.style-pro .studio.st-v:is(.sp-halftime, .sp-final) .st-live span { font-size: 76px; }
+.style-pro .studio.st-v .sp-right .hero { min-height: 380px; }
+.gx-cut { margin-top: -70px; }
+.layout-h .gx-cut { margin-top: 0; }

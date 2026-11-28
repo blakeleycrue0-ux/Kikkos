@@ -1,5 +1,6 @@
 // Mando de retransmisión (móvil). Muestra siempre el estado CONFIRMADO por el servidor;
 // las acciones que aún no han llegado quedan visibles como pendientes o fallidas.
+import { trimAlpha } from './image.js';
 import { $, $$, esc, clockMs, fmtClock, PHASE_LABEL, TYPE_LABEL, addedInfo, badge, icon, eventDetail, Link, getClientId } from './common.js';
 
 const EV_ORDER = ['goal', 'foul', 'yellow', 'red', 'sub'];
@@ -582,7 +583,7 @@ function renderAir() {
     ['Automática (sigue el modo y formato del mando)', `${base}/live`, 'según formato'],
   ];
   const sec = (v) => (v / 1000).toString();
-  const sig = JSON.stringify([d, c.cameraDelayMs, a.port, a.hasBackground, a.hasTeamPhoto]);
+  const sig = JSON.stringify([d, c.cameraDelayMs, a.port, a.hasBackground, a.settings.photos]);
   if (root.dataset.sig === sig && root.dataset.built) return;
   root.dataset.sig = sig;
   root.dataset.built = '1';
@@ -619,8 +620,11 @@ function renderAir() {
     <h2>Pantalla sin cámara</h2>
     <div class="card fields">
       <div><label class="f">Estilo</label><div class="seg" data-seg="display.style"><button data-v="pro" class="${d.style === 'pro' ? 'on' : ''}">Pro</button><button data-v="classic" class="${d.style !== 'pro' ? 'on' : ''}">Clásico</button></div></div>
-      <div class="logo-pick"><label class="btn sm" style="cursor:pointer">Subir foto del equipo<input type="file" accept="image/*" hidden data-teamphoto></label>
-        ${a.hasTeamPhoto ? '<button class="btn sm ghost" data-teamphotoremove>Quitar foto</button><span class="muted small">Se ve de fondo en la cuenta atrás, el descanso y la final</span>' : '<span class="muted small">Sin foto de equipo</span>'}</div>
+      <div><label class="f">Fotos de ambiente (PNG sin fondo)</label>
+        <div class="inline"><select id="photoTag"><option value="general">Para descanso, previa y final</option><option value="gol">Para el GOL</option></select>
+        <label class="btn sm" style="cursor:pointer">Subir<input type="file" accept="image/*" multiple hidden data-photolib></label></div></div>
+      <div class="spons ph-grid">${(a.settings.photos || []).map((x) => `<div class="sp-i"><img src="${esc(x.url)}" alt=""><span class="ph-tag">${x.tag === 'gol' ? 'GOL' : 'EQUIPO'}</span><button class="btn sm danger" data-more="photoDel" data-id="${esc(x.id)}">×</button></div>`).join('') || '<div class="muted small">Sin fotos todavía. Sube las que tengas: se recortan solas y se van alternando.</div>'}</div>
+      <div class="muted small">Las de «descanso, previa y final» se van alternando cada vez. Las de «GOL» salen en la animación de gol cuando la goleadora no tiene foto propia.</div>
       <label class="switch"><span>Animación grande de GOL</span><input type="checkbox" data-set="display.goalAnim" data-type="bool" ${d.goalAnim ? 'checked' : ''}></label>
       <label class="switch"><span>Preguntar qué jugadora tras gol o tarjeta del club</span><input type="checkbox" data-set="display.askScorer" data-type="bool" ${d.askScorer ? 'checked' : ''}></label>
       <label class="switch"><span>Escudos en silueta blanca (pierde los detalles)</span><input type="checkbox" data-set="display.whiteLogos" data-type="bool" ${d.whiteLogos ? 'checked' : ''}></label>
@@ -689,6 +693,24 @@ document.addEventListener('change', async (e) => {
   } catch (err) { toast(err.message, { bad: true }); }
 });
 document.addEventListener('change', async (e) => {
+  const lib = e.target.closest('input[data-photolib]');
+  if (lib && lib.files.length) {
+    const tag = $('#photoTag')?.value || 'general';
+    let ok = 0;
+    for (const file of [...lib.files]) {
+      try {
+        const blob = file.type === 'image/png' ? await trimAlpha(file) : await prepareImage(file, { max: 1400, photo: true });
+        const r = await api('/api/upload/logo', { method: 'POST', body: blob });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || 'No se pudo subir');
+        act('photo.add', { url: j.url, tag }, 'Foto añadida', { quiet: true });
+        ok++;
+      } catch (err) { toast(`${file.name}: ${err.message}`, { bad: true }); }
+    }
+    if (ok) toast(ok === 1 ? 'Foto añadida' : `${ok} fotos añadidas`);
+    lib.value = '';
+    return;
+  }
   const inp = e.target.closest('input[data-teamphoto]');
   if (!inp || !inp.files[0]) return;
   try {
@@ -961,6 +983,7 @@ $('#tab-more').addEventListener('click', (e) => {
     case 'luSave':
       act('match.update', { patch: { starters: $$('[data-lu]').filter((c) => c.checked).map((c) => c.dataset.lu), mvp: v('luMvp') } }, 'Alineación guardada');
       break;
+    case 'photoDel': act('photo.remove', { id: b.dataset.id }, 'Foto quitada'); break;
     case 'sponDel': act('sponsor.remove', { id: b.dataset.id }, 'Patrocinador quitado'); break;
     case 'saveStrip': act('settings.update', { patch: { strip: { messages: v('sMsgs').split('\n') } } }, 'Mensajes guardados'); break;
     case 'togglekey': showKey = !showKey; $('#tab-more').dataset.sig = ''; renderMore(); break;
@@ -1003,3 +1026,8 @@ $('#loginForm').addEventListener('submit', async (e) => {
   link.start();
   setTab('live');
 })();
+
+$('#tab-air').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-more="photoDel"]');
+  if (b) act('photo.remove', { id: b.dataset.id }, 'Foto quitada');
+});
